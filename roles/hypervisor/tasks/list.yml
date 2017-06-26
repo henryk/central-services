@@ -1,0 +1,14 @@
+- name: List running domains
+  command: virsh list --name
+  changed_when: no
+  register: virsh_list_running_result
+
+- name: List all domains
+  command: virsh list --all --name
+  changed_when: no
+  register: virsh_list_all_result
+
+- name: Extract domain facts
+  set_fact:
+    libvirt_running_domains: "{{ virsh_list_running_result.stdout_lines }}"
+    libvirt_all_domains: "{{ virsh_list_all_result.stdout_lines }}"

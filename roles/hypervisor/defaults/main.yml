@@ -1,8 +1,37 @@
+ansible_outgoing_user: "{{ ansible_user if ansible_user is defined else lookup('pipe', 'whoami') }}"
+
 libvirt_vg_name: "{{ inventory_hostname }}"
 libvirt_pool_name: "{{libvirt_vg_name}}"
 libvirt_net_name: default
 libvirt_net_device: virbr0
 libvirt_net_ip_base: 192.168.155.1
 libvirt_net_ip_mask: 255.255.255.0
-libvirt_net_ip_dhcp_min: 192.168.155.10
+libvirt_net_ip_dhcp_min: 192.168.155.200
 libvirt_net_ip_dhcp_max: 192.168.155.254
+
+virt_builder_options: --update --root-password disabled 
+virt_builder_install:
+  - mc
+  - screen
+  - python
+  - python-apt
+  - perl-modules
+  - openssh-server
+  - qemu-guest-agent
+virt_builder_users: "{{ users }}"
+virt_builder_user_defaults:
+  shell: /bin/bash
+  ssh_keys: []
+  groups: []
+
+libvirt_domain_defaults:
+  distribution: ubuntu-16.04
+  disksize: 5G
+  memsize: 524288
+  cpus: 1
+  autostart: yes
+  virt_builder_install: []
+  virt_builder_options: ""
+  virt_builder_users: "{{ virt_builder_users }}"
+
+libvirt_domains: []

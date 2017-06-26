@@ -1,0 +1,9 @@
+- name: Check libguestfs for the workaround in https://bugs.launchpad.net/ubuntu/+source/libguestfs/+bug/1632405
+  stat: path=/usr/lib/x86_64-linux-gnu/guestfs/supermin.d/init.tar.gz get_checksum=yes checksum_algorithm=sha256
+  register: libguestfs_init
+
+- name: Apply workaround to libguestfs
+  copy:
+    dest=/usr/lib/x86_64-linux-gnu/guestfs/supermin.d/init.tar.gz
+    src=init.tar.gz
+  when: libguestfs_init.stat.checksum == 'be70c7bff51db86c8c0808abab7f007deda97eccea0f0540a5137dd7806f7d2a'

@@ -1,0 +1,11 @@
+libvirt_domains:
+  - name: test-123
+    ip: 192.168.155.199
+
+users:
+  rick:
+    groups:
+      - sudo
+      - adm
+    ssh_keys:
+      - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHrv4QiQ0NNxBhyFcKjRiuEFIfU7fS7us4OBE/yd6l7c rick@management

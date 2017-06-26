@@ -1,0 +1,48 @@
+- name: "Check against overwrite on {{libvirt_domain.name}}"
+  stat: "path=/dev/{{libvirt_vg_name}}/{{libvirt_domain.name}}"
+  register: setup_domain_check_overwrite
+  failed_when: setup_domain_check_overwrite.stat.exists
+
+- name: "Set up volume for {{libvirt_domain.name}}"
+  command: virsh vol-create-as "{{libvirt_pool_name}}" "{{libvirt_domain.name}}" "{{libvirt_domain.disksize}}"
+
+- name: "Build VM image for {{libvirt_domain.name}}"
+  command: |
+    virt-builder -q "{{libvirt_domain.distribution}}" \
+      -o "/dev/{{libvirt_vg_name}}/{{libvirt_domain.name}}" \
+      --hostname "{{libvirt_domain.name}}" \
+      --install "{{ (virt_builder_install + libvirt_domain.virt_builder_install)|join(",") }}" \
+      --run-command "deluser --remove-home builder" \
+      {% for username in libvirt_domain.virt_builder_users %} \
+        {% set user = virt_builder_user_defaults|combine(libvirt_domain.virt_builder_users[username]) %} \
+        --run-command "useradd -m -U -G '{{ user.groups|join(',') }}' -s '{{user.shell}}' -p '{{ lookup('passwordstore', pass_prefix + pass_name + "/" + libvirt_domain.name + "/" + username + ' create=true length=' + pass_generate_length ) |password_hash('sha512') }}' '{{username}}'" \
+        {% if "ssh_keys" in user %} \
+          {% for ssh_key in user.ssh_keys %} \
+            --ssh-inject "{{username}}:string:{{ssh_key}}" \
+          {% endfor %} \
+          --run-command "chown -R {{username}}:{{username}} /home/{{username}}/.ssh; chmod -R go= /home/{{username}}/.ssh" \
+        {% endif %} \
+      {% endfor %} \
+      {{ virt_builder_options }} \
+      --run-command "systemctl enable serial-getty@ttyS0.service" \
+      {{ libvirt_domain.virt_builder_options }}
+
+- name: "Define VM {{libvirt_domain.name}}"
+  virt:
+    name: "{{libvirt_domain.name}}"
+    command: define
+    xml: "{{ lookup('template', 'domain.xml.j2') }}"
+
+- name: Get MAC address of new domain
+  shell: virsh domiflist "{{libvirt_domain.name}}" | grep "{{libvirt_net_name}}" | awk '{print $5;}'
+  register: libvirt_domain_mac
+
+- name: Configure DHCP lease for new domain
+  command: virsh net-update "{{libvirt_net_name}}" add ip-dhcp-host "<host mac='{{libvirt_domain_mac.stdout}}' name='{{libvirt_domain.name}}' ip='{{libvirt_domain.ip}}' />" --live --config
+
+- name: "Start new domain {{libvirt_domain.name}}"
+  virt:
+    name: "{{libvirt_domain.name}}"
+    state: running
+    autostart: "{{libvirt_domain.autostart}}"
+  when: libvirt_domain.autostart

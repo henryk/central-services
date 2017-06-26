@@ -4,7 +4,7 @@ pass_name: "{{ inventory_hostname }}"
 pass_user_host_path: "{{ pass_prefix }}{{ pass_name }}{{ pass_user_base }}"
 pass_generate_length: "15"
 
-ansible_become_pass: "{{ lookup('pipe', 'pass ' + pass_user_host_path ) }}"
+ansible_become_pass: "{{ lookup('passwordstore', pass_user_host_path + ' create=true length=' + pass_generate_length ) }}"
 ansible_become: True
 
 ansible_ssh_extra_args: "-o StrictHostKeyChecking=no"

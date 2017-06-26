@@ -1,6 +1,14 @@
 ---
-- hosts: hypervisors
-  name: Set up hypervisors
+- name: Check local prerequisites
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Ensure Ansible version
+      fail: msg="This playbook requires Ansible 2.3 or greater."
+      when: ansible_version.major < 2 or (ansible_version.major == 2 and ansible_version.minor < 3)
+
+- name: Set up hypervisors
+  hosts: hypervisors
   roles:
     - hypervisor
     - upgrade-reboot
