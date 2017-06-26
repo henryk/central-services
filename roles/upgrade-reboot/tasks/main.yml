@@ -3,7 +3,10 @@
 - name: Update and upgrade all packages
   apt: update_cache=yes autoremove=yes upgrade=yes
 - name: Reboot system if required
-  shell: sleep 2 && shutdown -r now 'Rebooting to complete system upgrade' && sleep 1
+  command: /usr/bin/systemd-run --on-active=2 /bin/systemctl reboot
     removes=/var/run/reboot-required
   ignore_errors: true
+  async: 0
+  poll: 0
+
 
