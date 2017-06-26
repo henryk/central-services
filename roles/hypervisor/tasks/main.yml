@@ -2,6 +2,7 @@
   apt: name={{item}} state=present
   with_items:
     - lvm2
+    - rng-tools
     - libvirt-bin
     - qemu-kvm
     - libguestfs-tools
@@ -31,6 +32,17 @@
 
 - include: tasks/list.yml
 
+- name: Delete domains that are obsolete
+  include: tasks/delete_domain.yml
+  static: no
+  with_items: "{{ libvirt_domains_deleted }}"
+  loop_control:
+    loop_var: libvirt_domain_delete
+  when: libvirt_domain_delete in libvirt_all_domains
+
+- include: tasks/list.yml
+  when: libvirt_all_domains | intersect(libvirt_domains_deleted)
+
 - name: Setup domains that are missing
   include: tasks/setup_domain.yml libvirt_domain={{libvirt_domain_defaults|combine(domain_definition)}}
   static: no
@@ -39,11 +51,22 @@
     loop_var: domain_definition
   when: domain_definition.name not in libvirt_all_domains
 
+- name: "Start domain"
+  vars:
+    libvirt_domain: "{{libvirt_domain_defaults|combine(domain_definition)}}"
+  virt:
+    name: "{{libvirt_domain.name}}"
+    state: running
+    autostart: "{{libvirt_domain.autostart}}"
+  with_items: "{{ libvirt_domains }}"
+  loop_control:
+    loop_var: domain_definition
+  when: libvirt_domain.autostart
+
 - name: "Wait for domain to come up"
   wait_for:
     host: "{{item.ip}}"
     port: 22
-    delay: 5
   with_items: "{{libvirt_domains}}"
   when: (libvirt_domain_defaults|combine(item)).autostart
 
