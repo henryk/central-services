@@ -1,0 +1,23 @@
+<network>
+  <name>{{ libvirt_net_name }}</name>
+  {% if ansible_libvirt_networks and libvirt_net_name in ansible_libvirt_networks %}
+    <uuid>{{ansible_libvirt_networks[libvirt_net_name].uuid}}</uuid>
+    <mac address='{{ansible_libvirt_networks[libvirt_net_name].macaddress}}'/>
+  {% endif %}
+  <forward mode='nat'>
+    <nat>
+      <port start='1024' end='65535'/>
+    </nat>
+  </forward>
+  <bridge name='{{libvirt_net_device}}' stp='on' delay='0'/>
+  <ip address='{{libvirt_net_ip_base}}' netmask='{{libvirt_net_ip_mask}}'>
+    <dhcp>
+      <range start='{{libvirt_net_ip_dhcp_min}}' end='{{libvirt_net_ip_dhcp_max}}'/>
+      {% if ansible_libvirt_networks and libvirt_net_name in ansible_libvirt_networks %}
+      	{% for host in ansible_libvirt_networks[libvirt_net_name].dhcp_leases %}
+      		<host mac="{{host['mac']}}" name="{{host['hostname']}}" ip="{{host['ipaddr']}}" />
+      	{% endfor %}
+      {% endif %}
+    </dhcp>
+  </ip>
+</network>

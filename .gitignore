@@ -1,3 +1,6 @@
 /*.retry
-/inventory/local
 *.sublime-workspace
+/inventory/*
+!/inventory/*.sample
+/host_vars/*
+!/host_vars/*.sample

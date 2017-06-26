@@ -1,0 +1,8 @@
+magic-mountain  libvirt_vg_pvs="/dev/sdb1"
+other-system ansible_become=false ansible_username=root ansible_become_pass=""
+
+[hypervisors]
+magic-mountain 
+
+[all:vars]
+pass_prefix=my-systems/

@@ -1,0 +1,8 @@
+libvirt_vg_name: "{{ inventory_hostname }}"
+libvirt_pool_name: "{{libvirt_vg_name}}"
+libvirt_net_name: default
+libvirt_net_device: virbr0
+libvirt_net_ip_base: 192.168.155.1
+libvirt_net_ip_mask: 255.255.255.0
+libvirt_net_ip_dhcp_min: 192.168.155.10
+libvirt_net_ip_dhcp_max: 192.168.155.254

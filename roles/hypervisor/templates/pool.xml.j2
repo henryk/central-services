@@ -1,0 +1,12 @@
+<pool type='logical'>
+  <name>{{ libvirt_pool_name }}</name>
+  <source>
+  	{% for item in libvirt_vg_pvs.split(',') %}
+    <device path='{{item|trim}}'/>
+    {% endfor %}
+    <format type='lvm2'/>
+  </source>
+  <target>
+    <path>/dev/{{ libvirt_vg_name }}</path>
+  </target>
+</pool>

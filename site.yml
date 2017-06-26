@@ -1,10 +1,11 @@
 ---
-- hosts: all
-  tasks:
-  - name: Install aptitude
-    apt: name=aptitude state=present
-  - name: Update and upgrade all packages
-    apt: update_cache=yes autoremove=yes upgrade=yes
-  - name: Reboot system if required
-    command: shutdown -r now 'Rebooting to complete system upgrade'
-             removes=/var/run/reboot-required
+- hosts: hypervisors
+  name: Set up hypervisors
+  roles:
+    - hypervisor
+    - upgrade-reboot
+
+- hosts: all:!hypervisors
+  name: Install upgrades everywhere and reboot
+  roles:
+    - upgrade-reboot

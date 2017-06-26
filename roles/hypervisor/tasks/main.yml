@@ -1,0 +1,41 @@
+- name: Install packages
+  apt: name={{item}} state=present
+  with_items:
+    - lvm2
+    - libvirt-bin
+    - libguestfs-tools
+    - python-libvirt
+    - python-lxml
+
+- name: Set up volume group
+  lvg:
+    state: present
+    vg: "{{ libvirt_vg_name }}"
+    pvs: "{{ libvirt_vg_pvs }}"
+
+- name: Define storage pool
+  virt_pool:
+    name: "{{ libvirt_pool_name }}"
+    autostart: yes
+    state: present
+    xml: "{{ lookup('template', 'pool.xml.j2')  }}"
+
+- name: Start storage pool
+  virt_pool:
+    name: "{{ libvirt_pool_name }}"
+    autostart: yes
+    state: active
+
+# - name: Get libvirt network facts
+#   virt_net: command=facts
+
+## Network (re)definition is basically broken with the virt_net module
+## Ignore it for now.  TODO
+## User must set up network before use
+#
+# - name: Define network
+#   virt_net:
+#     name: "{{libvirt_net_name}}"
+#     autostart: yes
+#     state: present
+#     xml: "{{ lookup('template', 'net.xml.j2')  }}"
