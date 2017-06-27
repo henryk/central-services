@@ -1,7 +1,11 @@
-- name: Install aptitude
-  apt: name=aptitude state=present
-- name: Update and upgrade all packages
+- name: Update and upgrade all packages (Debian/Ubuntu)
   apt: update_cache=yes autoremove=yes upgrade=yes
+  when: ansible_os_family == 'Debian'
+
+- name: Upgrade all packages (RedHat/Fedora)
+  dnf: name=* state=latest
+  when: ansible_os_family == 'RedHat'
+
 - name: Reboot system if required
   command: /usr/bin/systemd-run --on-active=2 /bin/systemctl reboot
     removes=/var/run/reboot-required

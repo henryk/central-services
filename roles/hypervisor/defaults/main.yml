@@ -18,14 +18,18 @@ virt_builder_install:
   all:
     - mc
     - screen
-    - python
     - rng-tools
     - openssh-server
     - qemu-guest-agent
   ubuntu:
+    - python
+    - aptitude
     - python-apt
     - perl-modules
-  fedora: []
+  fedora:
+    - python2
+    - python2-dnf
+    - libselinux-python
 
 virt_builder_admin_groups:
   all: []
