@@ -49,7 +49,7 @@ virt_builder_user_defaults:
 libvirt_domain_defaults:
   distribution: ubuntu-16.04
   disksize: 5G
-  memsize: 524288
+  memsize: 393216
   cpus: 1
   autostart: yes
   groups: []
