@@ -4,8 +4,6 @@ libvirt_domains:
 
 users:
   rick:
-    groups:
-      - sudo
-      - adm
+    is_admin: True
     ssh_keys:
       - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHrv4QiQ0NNxBhyFcKjRiuEFIfU7fS7us4OBE/yd6l7c rick@management
