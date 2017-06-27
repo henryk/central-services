@@ -52,6 +52,7 @@ class DynamicInventory(object):
 
 		for hypervisor, config in hypervisors.items():
 			for domain in config.get("libvirt_domains", []):
+				if domain["name"] in config.get("libvirt_domains_deleted", []): continue
 				vars = {
 					"hypervisor_machine": domain["hypervisor"],
 					"ansible_host": domain["ip"],
