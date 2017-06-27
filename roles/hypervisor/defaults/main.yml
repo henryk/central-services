@@ -9,18 +9,35 @@ libvirt_net_ip_mask: 255.255.255.0
 libvirt_net_ip_dhcp_min: 192.168.155.200
 libvirt_net_ip_dhcp_max: 192.168.155.254
 
-virt_builder_options: --update --root-password disabled 
+virt_builder_options:
+  all: --update --root-password disabled
+  ubuntu: ""
+  fedora: --selinux-relabel
+
 virt_builder_install:
-  - mc
-  - screen
-  - python
-  - rng-tools
-  - python-apt
-  - perl-modules
-  - openssh-server
-  - qemu-guest-agent
+  all:
+    - mc
+    - screen
+    - python
+    - rng-tools
+    - openssh-server
+    - qemu-guest-agent
+  ubuntu:
+    - python-apt
+    - perl-modules
+  fedora: []
+
+virt_builder_admin_groups:
+  all: []
+  ubuntu:
+    - sudo
+    - adm
+  fedora:
+    - wheel
+
 virt_builder_users: "{{ users }}"
 virt_builder_user_defaults:
+  is_admin: False
   shell: /bin/bash
   ssh_keys: []
   groups: []
@@ -31,6 +48,7 @@ libvirt_domain_defaults:
   memsize: 524288
   cpus: 1
   autostart: yes
+  groups: []
   virt_builder_install: []
   virt_builder_options: ""
   virt_builder_users: "{{ virt_builder_users }}"
@@ -38,3 +56,4 @@ libvirt_domain_defaults:
 libvirt_domains: []
 libvirt_domains_deleted: []
 
+override_force_delete: false

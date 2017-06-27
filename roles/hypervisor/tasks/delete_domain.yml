@@ -2,20 +2,25 @@
   virt:
     name: "{{libvirt_domain_delete}}"
     command: shutdown
+  ignore_errors: "{{override_force_delete}}"
 
 - name: "Stop and destroy domain {{libvirt_domain_delete}}"
   virt:
     name: "{{libvirt_domain_delete}}"
     state: destroyed
     autostart: false
+  ignore_errors: "{{override_force_delete}}"
 
 - name: "Undefine domain {{libvirt_domain_delete}}"
   virt:
     command: undefine
     name: "{{libvirt_domain_delete}}"
+  ignore_errors: "{{override_force_delete}}"
 
 - name: "Deconfigure DHCP lease for {{libvirt_domain_delete}}"
   command: virsh net-update "{{libvirt_net_name}}" delete ip-dhcp-host "<host name='{{libvirt_domain_delete}}' />" --config --live
+  ignore_errors: "{{override_force_delete}}"
 
 - name: "Delete storage volume"
   command: virsh vol-delete --pool "{{libvirt_pool_name}}" "{{libvirt_domain_delete}}"
+  ignore_errors: "{{override_force_delete}}"

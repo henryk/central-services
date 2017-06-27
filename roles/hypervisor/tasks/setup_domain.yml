@@ -7,15 +7,19 @@
   command: virsh vol-create-as "{{libvirt_pool_name}}" "{{libvirt_domain.name}}" "{{libvirt_domain.disksize}}"
 
 - name: "Build VM image for {{libvirt_domain.name}}"
+  vars:
+    distribution_base: "{{ libvirt_domain.distribution.split('-')[0] }}"
+    install: "{{ (virt_builder_install['all'] + virt_builder_install[distribution_base] + libvirt_domain.virt_builder_install)|join(',') }}"
   command: |
     virt-builder -q "{{libvirt_domain.distribution}}" \
       -o "/dev/{{libvirt_vg_name}}/{{libvirt_domain.name}}" \
       --hostname "{{libvirt_domain.name}}" \
-      --install "{{ (virt_builder_install + libvirt_domain.virt_builder_install)|join(",") }}" \
-      --run-command "deluser --remove-home builder" \
+      --install "{{install}}" \
+      --run-command "deluser --remove-home builder || true" \
       {% for username in libvirt_domain.virt_builder_users %} \
         {% set user = virt_builder_user_defaults|combine(libvirt_domain.virt_builder_users[username]) %} \
-        --run-command "useradd -m -U -G '{{ user.groups|join(',') }}' -s '{{user.shell}}' -p '{{ lookup('passwordstore', pass_prefix + pass_name + "/" + libvirt_domain.name + "/" + username + ' create=true length=' + pass_generate_length ) |password_hash('sha512') }}' '{{username}}'" \
+        {% set groups =  user.groups + ( (virt_builder_admin_groups['all'] + virt_builder_admin_groups[distribution_base] if user.is_admin else []) ) %} \
+        --run-command "useradd -m -U -G '{{ groups|join(',') }}' -s '{{user.shell}}' -p '{{ lookup('passwordstore', pass_prefix + pass_name + "/" + libvirt_domain.name + "/" + username + ' create=true length=' + pass_generate_length ) |password_hash('sha512') }}' '{{username}}'" \
         {% if "ssh_keys" in user %} \
           {% for ssh_key in user.ssh_keys %} \
             --ssh-inject "{{username}}:string:{{ssh_key}}" \
@@ -23,7 +27,8 @@
           --run-command "chown -R {{username}}:{{username}} /home/{{username}}/.ssh; chmod -R go= /home/{{username}}/.ssh" \
         {% endif %} \
       {% endfor %} \
-      {{ virt_builder_options }} \
+      {{ virt_builder_options['all'] }} \
+      {{ virt_builder_options[distribution_base] }} \
       --run-command "systemctl enable serial-getty@ttyS0.service" \
       {{ libvirt_domain.virt_builder_options }}
 

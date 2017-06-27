@@ -38,10 +38,10 @@
   with_items: "{{ libvirt_domains_deleted }}"
   loop_control:
     loop_var: libvirt_domain_delete
-  when: libvirt_domain_delete in libvirt_all_domains
+  when: libvirt_domain_delete in libvirt_all_domains or override_force_delete
 
 - include: tasks/list.yml
-  when: libvirt_all_domains | intersect(libvirt_domains_deleted)
+  when: override_force_delete or libvirt_all_domains | intersect(libvirt_domains_deleted)
 
 - name: Setup domains that are missing
   include: tasks/setup_domain.yml libvirt_domain={{libvirt_domain_defaults|combine(domain_definition)}}
