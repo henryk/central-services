@@ -2,5 +2,9 @@
 *.sublime-workspace
 /inventory/*
 !/inventory/*.sample
+!/inventory/_virtual_machines
+!/inventory/group_vars
 /host_vars/*
 !/host_vars/*.sample
+/config/*
+!/config/*.sample

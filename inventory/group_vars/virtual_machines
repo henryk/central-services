@@ -1,0 +1,5 @@
+pass_prefix: "{{ hostvars[hypervisor_machine]['pass_prefix'] }}{{ hostvars[hypervisor_machine]['pass_name'] }}/"
+
+ansible_outgoing_user: "{{ ansible_user if ansible_user is defined else lookup('pipe', 'whoami') }}"
+
+ansible_ssh_common_args: '-o ProxyCommand="ssh -W %h:%p -q {{ ansible_outgoing_user }}@{{hypervisor_machine}}"'

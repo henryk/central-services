@@ -70,21 +70,6 @@
   with_items: "{{libvirt_domains}}"
   when: (libvirt_domain_defaults|combine(item)).autostart
 
-- name: Register hosts in the inventory
-  add_host:
-    name: "{{item.name}}"
-    groups: 
-      - virtual_machines
-      - "virtual_machines-{{ inventory_hostname }}"
-    ansible_host: "{{item.ip}}"
-    ansible_ssh_common_args: '-o ProxyCommand="ssh -W %h:%p -q {{ ansible_outgoing_user }}@{{inventory_hostname}}"'
-    ## Explicitly inherit these values
-    pass_prefix: "{{pass_prefix}}{{pass_name}}/"
-    pass_generate_length: "{{pass_generate_length}}"
-  with_items: "{{libvirt_domains}}"
-  changed_when: false
-
-
 # - name: Get libvirt network facts
 #   virt_net: command=facts
 

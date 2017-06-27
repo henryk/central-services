@@ -1,5 +1,3 @@
-ansible_outgoing_user: "{{ ansible_user if ansible_user is defined else lookup('pipe', 'whoami') }}"
-
 libvirt_vg_name: "{{ inventory_hostname }}"
 libvirt_pool_name: "{{libvirt_vg_name}}"
 libvirt_net_name: default
