@@ -1,0 +1,5 @@
+---
+- hosts: all:!hypervisors
+  name: Install upgrades everywhere and reboot
+  roles:
+    - upgrade-reboot
