@@ -1,0 +1,41 @@
+---
+- name: Install basic packages
+  apt:
+    name: "{{item}}"
+    state: present
+  with_items:
+    - lighttpd
+    - cron
+    - git
+    - acl  ## Set HACK HACK HACK below
+
+- name: Create dedicated letsencrypt-handler user
+  user:
+    name: "{{letsencrypt_handler_conf.user}}"
+    state: present
+    system: true
+  register: letsencrypt_handler_user
+
+- name: Remount /tmp with acl support (HACK HACK HACK)
+  command: mount / -o remount,acl
+  changed_when: false
+  args:
+    warn: false
+
+- name: Download acme-tiny from github
+  git:
+    repo: 'https://github.com/diafygi/acme-tiny/'
+    dest: '{{letsencrypt_handler_user.home}}/acme-tiny'
+    version: '{{letsencrypt_handler_conf.acme_tiny_version}}'
+  become_user: '{{letsencrypt_handler_conf.user}}'
+
+- name: Set directory permissions
+  file:
+    path: '{{item}}'
+    state: directory
+    mode: go=
+  with_items:
+    - '{{letsencrypt_handler_user.home}}'
+    - '{{letsencrypt_handler_user.home}}/acme-tiny'
+
+

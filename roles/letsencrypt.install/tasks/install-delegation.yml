@@ -1,0 +1,25 @@
+---
+- name: Install basic packages
+  apt:
+    name: "{{item}}"
+    state: present
+  with_items:
+    - nginx
+
+- name: Create configuration directories
+  file:
+    path: /etc/nginx/snippets
+    state: directory
+
+- name: Generate custom DH parameters
+  command: openssl dhparam 4096 -out /etc/nginx/dhparam.pem
+  args: 
+    creates: /etc/nginx/dhparam.pem
+
+- name: Install configuration snippets
+  template:
+    dest: /etc/nginx/snippets/{{item}}
+    src: "{{item}}.j2"
+  with_items:
+    - acme.conf
+    - ssl.conf

@@ -56,7 +56,9 @@ class DynamicInventory(object):
 				vars = {
 					"hypervisor_machine": domain["hypervisor"],
 					"ansible_host": domain["ip"],
+					"internal_ip": domain["ip"],
 				}
+				vars.update(domain.get("vars", {}))
 				domains[domain["name"]] = vars
 
 				groups.setdefault("virtual_machines", []).append(domain["name"])

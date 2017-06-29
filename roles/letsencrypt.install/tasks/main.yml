@@ -1,0 +1,5 @@
+---
+- include: tasks/install-delegation.yml
+  when: '"delegated" in letsencrypt'
+- include: tasks/install-handler.yml letsencrypt_handler_conf="{{letsencrypt_handler_defaults|combine(letsencrypt_handler)}}"
+  when: 'not "delegated" in letsencrypt'

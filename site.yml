@@ -10,4 +10,6 @@
 
 
 - include: hypervisors.yml
+- include: web-infrastructure.yml
+#- include: web-apps.yml
 - include: run-updates.yml

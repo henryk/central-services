@@ -1,0 +1,4 @@
+location /.well-known/acme-challenge {
+        include /etc/nginx/proxy_params;
+        proxy_pass http://{{letsencrypt.delegated}};
+}

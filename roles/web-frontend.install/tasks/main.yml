@@ -1,0 +1,14 @@
+---
+- name: Install basic packages
+  apt:
+    name: "{{item}}"
+    state: present
+  with_items:
+    - nginx
+    - cron
+    - openssl
+
+- name: Create configuration directories
+  file:
+    path: /etc/nginx/snippets
+    state: directory

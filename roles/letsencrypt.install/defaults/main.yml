@@ -1,0 +1,5 @@
+letsencrypt_handler_defaults:
+  user: letsencrypt-handler
+  acme_tiny_version: '7ef9164dc141f369f5f92a1132b3ef9e12e95b73'
+
+letsencrypt_handler: {}
