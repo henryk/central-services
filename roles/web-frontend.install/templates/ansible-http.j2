@@ -1,0 +1,43 @@
+# {{ ansible_managed }}
+
+{% for hostname in hostvars -%}
+    {%- set managed_domains = hostvars[hostname].web|default({})|json_query("[?frontend == "+inventory_hostname+"]") -%}
+    {%- if managed_domains -%}
+
+        {%- for domain in managed_domains %}
+        {%- set domain = web_defaults|combine(domain) %}
+
+upstream {{hostname}}_{{domain.domain}} { server {{hostvars[hostname].internal_ip}}:{{domain.port}} ; }
+
+server {
+    listen 80;
+    listen [::]:80;
+    server_name {{domain.domain}};
+    include snippets/acme.conf;
+  
+            {% if domain.ssl == 'force' %}
+
+    location / {
+        rewrite     ^   https://$server_name$request_uri? permanent;
+    }
+
+            {% else %}
+
+    location / {
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header Host {{domain.domain}};
+            proxy_read_timeout 300s;
+            proxy_pass http://{{hostname}};
+    }
+
+            {% endif %}
+
+}
+        {% endfor -%}
+
+
+    {% endif -%}
+{%- endfor %}
+

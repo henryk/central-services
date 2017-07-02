@@ -12,3 +12,25 @@
   file:
     path: /etc/nginx/snippets
     state: directory
+
+- name: Make sure the default configuration is disabled
+  file:
+    path: /etc/nginx/sites-enabled/default
+    state: absent
+  notify:
+    - restart nginx
+
+- name: Create configuration file for HTTP
+  template:
+    dest: /etc/nginx/sites-available/ansible-http
+    src: templates/ansible-http.j2
+  notify:
+    - restart nginx
+
+- name: Enable HTTP configuration
+  file:
+    dest: /etc/nginx/sites-enabled/ansible-http
+    src: /etc/nginx/sites-available/ansible-http
+    state: link
+  notify:
+    - restart nginx
