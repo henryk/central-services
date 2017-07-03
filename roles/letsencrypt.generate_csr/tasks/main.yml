@@ -1,0 +1,40 @@
+- debug:
+    msg: "{{inventory_hostname}} {{domain}}"
+
+- block:
+    - name: Install necessary packages
+      package: name={{item}} state=present
+      with_items:
+        - openssl
+
+    - name: Create target directory
+      file: path={{item.directory}} state=directory mode={{item.mode}}
+      with_items:
+        - { directory: "{{ssl_csr_directory}}", mode: "{{omit}}" }
+        - { directory: "{{ssl_key_directory}}", mode: "0600" }
+
+    - name: Generate key
+      command: openssl genrsa -out {{ssl_key_directory}}/{{domain.name}}.key  {{rsa_keysize}}
+      args:
+        creates: "{{ssl_key_directory}}/{{domain.name}}.key"
+
+    - name: Generate CSR
+      shell: |
+        openssl req -new -sha256 -key "{{ssl_key_directory}}/{{domain.name}}.key" \
+          -subj "/CN={{domain.name}}" -reqexts SAN -out "{{ssl_csr_directory}}/{{domain.name}}.csr" -config \
+          <(cat /etc/ssl/openssl.cnf <(printf "[SAN]\nsubjectAltName=DNS:{{ ([domain.name]+domain.aliases) | join(',DNS:') }}"))
+      args:
+        creates: "{{ssl_csr_directory}}/{{domain.name}}.csr"
+        executable: "/bin/bash"
+
+    - name: Fetch CSR (1/2)
+      command: cat "{{ssl_csr_directory}}/{{domain.name}}.csr"
+      changed_when: false
+      register: "get_csr_temp"
+
+    - name: Fetch CSR (2/2)
+      set_fact:
+        letsencrypt_csrs: "{{ letsencrypt_csrs|default({}) | combine( { destination_host :  (letsencrypt_csrs|default({destination_host:{}}))[destination_host] | combine( {domain.name: get_csr_temp.stdout} ) } )   }}"
+
+  delegate_to: "{{destination_host}}"
+

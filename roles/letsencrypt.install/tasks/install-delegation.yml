@@ -23,3 +23,15 @@
   with_items:
     - acme.conf
     - ssl.conf
+
+- name: "Call CSR generation"
+  include_role:
+    name: letsencrypt.generate_csr
+  static: no
+  with_items: "{{hostvars|json_query(query_a) | map('default_hash', web_defaults ) | list | json_query(query_b)}}"
+  loop_control:
+    loop_var: domain
+  vars:
+    query_a: "*.web[]"
+    query_b: "[?frontend=={{inventory_hostname}}].{name:name,aliases:aliases}"
+    destination_host: "{{inventory_hostname}}"

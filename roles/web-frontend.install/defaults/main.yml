@@ -2,3 +2,4 @@ web_defaults:
   frontend: false
   ssl: force
   port: 80
+  aliases: []
