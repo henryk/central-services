@@ -1,6 +1,6 @@
 pass_prefix: ""
 pass_user_base: "/{{ ansible_user if ansible_user is defined else lookup('pipe', 'whoami') }}"
-pass_name: "{{ inventory_hostname }}"
+pass_name: "{{ destination_host|default( inventory_hostname ) }}"
 pass_user_host_path: "{{ pass_prefix }}{{ pass_name }}{{ pass_user_base }}"
 pass_generate_length: "15"
 

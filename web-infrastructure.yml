@@ -3,7 +3,6 @@
   hosts: web-frontend
   roles:
     - web-frontend.install
-    - letsencrypt.install
 
 - name: Set up separate let's encrypt handler
   hosts: letsencrypt-handler

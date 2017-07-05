@@ -1,5 +1,29 @@
 ---
-- include: tasks/install-delegation.yml
-  when: '"delegated" in letsencrypt'
+#- include: tasks/install-delegation.yml
+#  when: '"delegated" in letsencrypt'
+
 - include: tasks/install-handler.yml letsencrypt_handler_conf="{{letsencrypt_handler_defaults|combine(letsencrypt_handler)}}"
   when: 'not "delegated" in letsencrypt'
+
+- name: "Call CSR generation"
+  include_role:
+    name: letsencrypt.generate_csr
+  static: no
+  with_items: "{{hostvars|json_query(query_a) | map('default_hash', web_defaults ) | list | json_query(query_b)}}"
+  loop_control:
+    loop_var: domain
+  vars:
+    query_a: "*.web[]"
+    query_b: "[].{name:name,aliases:aliases,frontend:frontend}"
+    destination_host: "{{domain.frontend}}"
+
+- include: tasks/setup-handler.yml letsencrypt_handler_conf="{{letsencrypt_handler_defaults|combine(letsencrypt_handler)}}"
+  static: no
+
+  with_items: "{{ hostvars | json_query(query_a) | map('default_hash', letsencrypt) | list | json_query(query_b) }}"
+  loop_control:
+    loop_var: account_data
+  vars:
+    query_a: "*.web[].letsencrypt"
+    query_b: "[?delegated=='{{inventory_hostname}}'].{staging:staging, email:email}[]"
+
