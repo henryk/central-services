@@ -9,12 +9,12 @@
   include_role:
     name: letsencrypt.generate_csr
   static: no
-  with_items: "{{hostvars|json_query(query_a) | map('default_hash', web_defaults ) | list | json_query(query_b)}}"
+  with_items: "{{hostvars|json_query(query_a) | map('default_hash', web_defaults ) | map('default_hash', letsencrypt, 'letsencrypt' ) | list | json_query(query_b)}}"
   loop_control:
     loop_var: domain
   vars:
     query_a: "*.web[]"
-    query_b: "[].{name:name,aliases:aliases,frontend:frontend}"
+    query_b: "[].{name:name,aliases:aliases,frontend:frontend,letsencrypt:letsencrypt}"
     destination_host: "{{domain.frontend}}"
 
 - include: tasks/setup-handler.yml letsencrypt_handler_conf="{{letsencrypt_handler_defaults|combine(letsencrypt_handler)}}"

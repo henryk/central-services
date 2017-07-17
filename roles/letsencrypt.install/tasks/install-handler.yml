@@ -34,8 +34,8 @@
     path: '{{item}}'
     state: directory
     mode: go=
+    owner: "{{letsencrypt_handler_user}}"
   with_items:
-    - '{{letsencrypt_handler_user.home}}'
-    - '{{letsencrypt_handler_user.home}}/acme-tiny'
-
-
+    - { dir: '{{letsencrypt_handler_user.home}}', perm: 'go=' }
+    - { dir: '{{letsencrypt_handler_user.home}}/acme-tiny', perm: 'go='}
+    - { dir: '{{letsencrypt_handler_user.home}}/public_html', perm: 'a+rX' }

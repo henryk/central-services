@@ -1,0 +1,31 @@
+#!/bin/bash
+HOME_BASE="{{home}}/"
+CHAL_BASE="{{dirs.challenge}}"
+CERT_BASE="{{dirs.certificates}}"
+
+keyfile=$1
+subdir=$2
+
+[ -o "${keyfile}" -o -z "{subdir}" ] || exit 1
+
+cd "{{dirs.acme}}"
+
+echo -n "Running at "
+date
+keybase=`basename "${keyfile}" .key`
+##echo "Keybase ${keybase}"
+for domainreq in "${keybase}"/"${subdir}"/*.req; do
+        if [ -r "${domainreq}" ]; then
+                domain=`basename "${domainreq}" .req`
+                domainout="${CERT_BASE}/${keybase}/${subdir}"
+                mkdir -p "${domainout}"
+                echo "Domain ${domain} age" $(( $(date +"%s") - $(stat -c "%Y" "${domainout}/${domain}.crt" 2> /dev/null || echo 0) ))
+                if [ \! -e "${domainout}/${domain}.crt" -o \(  $(( $(date +"%s") - $(stat -c "%Y" "${domainout}/${domain}.crt" 2> /dev/null || echo 0) )) -gt 2592000  \) ]; then
+                        echo Renewing ${domain}
+                        python acme_tiny.py --account-key "${keyfile}" --csr "${domainreq}" --acme-dir "${CHAL_BASE}" > crt.tmp && \
+                        mv crt.tmp "${domainout}/${domain}.crt" && \
+                        wget --quiet https://letsencrypt.org/certs/lets-encrypt-x3-cross-signed.pem -O "${domainout}/${domain}-intermediate.crt" && \
+                        cat "${domainout}/${domain}.crt" "${domainout}/${domain}-intermediate.crt" > "${domainout}/${domain}-chained.crt"
+                fi
+        fi
+done
