@@ -10,9 +10,11 @@
     - name: Ensure jmespath is installed (ignore debug output)
       debug:
         msg: "{{ [] | json_query('[]') }}"
+      vars:
+        ansible_become_pass: ""
 
 
 - include: hypervisors.yml
 - include: web-infrastructure.yml
-#- include: web-apps.yml
+- include: web-apps.yml
 - include: run-updates.yml

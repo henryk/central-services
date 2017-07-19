@@ -1,0 +1,9 @@
+- name: restart zabbix
+  systemd:
+    name: zabbix-server
+    state: restarted
+
+- name: restart apache
+  service:
+    name: apache2
+    state: restarted

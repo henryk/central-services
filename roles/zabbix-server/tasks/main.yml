@@ -1,0 +1,106 @@
+- include_role:
+    name: mysql-server.install
+
+- name: Install base packages
+  apt: state=present name={{item}}
+  with_items:
+    - apache2
+    - php
+    - libapache2-mod-php
+    - php-mcrypt
+    - php-mysql
+    - php7.0-xml
+    - php7.0-bcmath
+    - php7.0-mbstring
+
+- name: Install zabbix repository
+  apt:
+    deb: http://repo.zabbix.com/zabbix/3.2/ubuntu/pool/main/z/zabbix-release/zabbix-release_3.2-1+xenial_all.deb
+    state: present
+
+- name: Install zabbix from repository
+  apt: 
+    update_cache: true
+    name: '{{item}}'
+    state: present
+  with_items:
+    - zabbix-server-mysql
+    - zabbix-frontend-php
+    - zabbix-agent
+
+- name: Create zabbix database user
+  mysql_user:
+    name: "{{zabbix_mysql_user}}"
+    password: "{{zabbix_mysql_password}}"
+    state: present
+    priv: "{{zabbix_mysql_database}}.*:ALL"
+    login_user: root
+    login_password: "{{mysql_root_password}}"
+
+- name: Create zabbix database
+  mysql_db:
+    login_user: root
+    login_password: "{{mysql_root_password}}"
+    name: "{{zabbix_mysql_database}}"
+    state: present
+    encoding: utf8
+    collation: utf8_bin
+  register: zabbix_database_created
+
+- name: Import zabbix database scheme
+  mysql_db:
+    login_user: root
+    login_password: "{{mysql_root_password}}"
+    name: "{{zabbix_mysql_database}}"
+    state: import
+    target: /usr/share/doc/zabbix-server-mysql/create.sql.gz   
+  when: zabbix_database_created.changed
+
+- name: Ensure the conf directory exists
+  file:
+    path: /etc/zabbix/zabbix_server.conf.d
+    state: directory
+
+- name: Configure zabbix server
+  lineinfile:
+    path: /etc/zabbix/zabbix_server.conf
+    regexp: '{{ item.re }}'
+    line: '{{ item.line }}'
+    insertafter: '{{ item.after if "after" in item else omit }}'
+  with_items:
+    - { re: '^\s*DBName\s*=', line: 'DBName={{zabbix_mysql_database}}' }
+    - { re: '^\s*DBUser\s*=', line: 'DBUser={{zabbix_mysql_user}}' }
+    - { re: '^\s*DBPassword\s*=', line: 'DBPassword={{zabbix_mysql_password}}', after: '^\s*#\s*DBPassword' }
+  notify: restart zabbix
+
+- name: Enable zabbix server
+  service:
+    name: zabbix-server
+    enabled: True
+    state: started
+    use: service  # Reference https://github.com/ansible/ansible-modules-core/issues/3764#issuecomment-284331673
+
+- name: Configure zabbix frontend
+  template:
+    dest: /etc/zabbix/web/zabbix.conf.php
+    src: zabbix.conf.php.j2
+    owner: www-data
+    group: www-data
+    mode: 0660
+
+## FIXME symlink and handler
+- name: Activate web interface
+  command: "{{item}}"
+  with_items:
+    - a2enconf zabbix
+    - service apache2 reload
+  changed_when: False
+  ignore_errors: True
+
+- name: Set default timezone to UTC
+  ini_file:
+    path: /etc/php/7.0/apache2/php.ini
+    section: Date
+    option: date.timezone
+    value: UTC
+  notify: restart apache

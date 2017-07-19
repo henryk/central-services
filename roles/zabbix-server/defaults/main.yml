@@ -1,0 +1,3 @@
+zabbix_mysql_user: zabbix
+zabbix_mysql_password: "{{ lookup('passwordstore', pass_prefix + pass_name + '/mysql/' + zabbix_mysql_user + ' create=true length=' + pass_generate_length ) }}"
+zabbix_mysql_database: zabbix
