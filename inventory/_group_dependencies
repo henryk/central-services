@@ -1,0 +1,4 @@
+[zabbix-server]
+
+[mysql-server:children]
+zabbix-server

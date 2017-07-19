@@ -1,0 +1,5 @@
+---
+- name: MySQL server installation
+  hosts: mysql-server:!zabbix-server
+  roles:
+    - mysql-server.install

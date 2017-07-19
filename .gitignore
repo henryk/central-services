@@ -4,6 +4,7 @@
 /inventory/*
 !/inventory/*.sample
 !/inventory/_virtual_machines
+!/inventory/_group_dependencies
 !/inventory/group_vars
 /host_vars/*
 !/host_vars/*.sample

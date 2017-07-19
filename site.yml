@@ -15,6 +15,7 @@
 
 
 - include: hypervisors.yml
+- include: database-setup.yml
 - include: web-infrastructure.yml
 - include: web-apps.yml
 - include: run-updates.yml
