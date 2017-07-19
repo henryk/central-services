@@ -8,12 +8,14 @@
     - libguestfs-tools
     - python-libvirt
     - python-lxml
+    - dnsmasq-utils
 
 - name: Set up volume group
   lvg:
     state: present
     vg: "{{ libvirt_vg_name }}"
     pvs: "{{ libvirt_vg_pvs }}"
+  when: libvirt_vg_pvs
 
 - name: Define storage pool
   virt_pool:

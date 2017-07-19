@@ -1,4 +1,5 @@
 libvirt_vg_name: "{{ inventory_hostname }}"
+libvirt_vg_pvs: ""
 libvirt_pool_name: "{{libvirt_vg_name}}"
 libvirt_net_name: default
 libvirt_net_device: virbr0

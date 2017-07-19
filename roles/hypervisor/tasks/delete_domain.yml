@@ -2,7 +2,7 @@
   virt:
     name: "{{libvirt_domain_delete}}"
     command: shutdown
-  ignore_errors: "{{override_force_delete}}"
+  ignore_errors: True
 
 - name: "Stop and destroy domain {{libvirt_domain_delete}}"
   virt:
