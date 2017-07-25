@@ -1,0 +1,76 @@
+---
+- name: Install prerequisites
+  apt: state=present name={{item}}
+  with_items:
+    - build-essential
+    - python3-dev
+    - python3-pip
+    - python3-virtualenv
+    - python3-venv
+    - acl  ## Set HACK HACK HACK below
+
+- name: Create a dedicated openslides user
+  user:
+    name: "{{openslides_user}}"
+    home: "{{openslides_user_home}}"
+    state: present
+
+- name: Remount /tmp with acl support (HACK HACK HACK)
+  command: mount / -o remount,acl
+  changed_when: false
+  args:
+    warn: false
+
+- name: Create OpenSlides directory
+  file:
+    path: "{{openslides_directory}}"
+    state: directory
+    owner: "{{openslides_user}}"
+    group: "{{openslides_user}}"
+
+- name: Set up virtual environment
+  shell: |
+    cd "{{openslides_directory}}"
+    mkdir "{{openslides_venv}}"
+    python3 -m venv "{{openslides_venv}}"
+    . "{{openslides_venv}}/bin/activate"
+    pip install --upgrade setuptools pip
+  args:
+    creates: "{{openslides_venv}}"
+  become_user: "{{openslides_user}}"
+
+- name: Install/Update OpenSlides via pip
+  pip:
+    name: openslides
+    state: latest
+    virtualenv: "{{openslides_venv}}"
+  become_user: "{{openslides_user}}"
+
+- name: Create base settings file
+  shell: |
+    cd "{{openslides_directory}}"
+    . "{{openslides_venv}}/bin/activate"
+    openslides createsettings --local-installation
+  args:
+    creates: "{{openslides_directory}}/personal_data/var/settings.py"
+  become_user: "{{openslides_user}}"
+
+- name: Update settings file
+  lineinfile:
+    path: "{{openslides_directory}}/personal_data/var/settings.py"
+    regexp: '^\s*{{ item.key }}\s*='
+    line: '{{ item.key }}={{ item.value }}'
+    insertafter: '^\s*#\s*{{ item.key }}'
+  with_dict:
+    DEBUG: 'False'
+
+- name: Install OpenSlides service
+  template:
+    dest: '/etc/systemd/system/openslides.service'
+    src: 'openslides.service.j2'
+
+- name: Enable and start OpenSlides service
+  systemd:
+    name: openslides
+    enabled: True
+    state: started

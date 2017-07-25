@@ -1,0 +1,14 @@
+[Unit]
+Description=OpenSlides assembly management system
+After=network.target
+
+[Service]
+Type=simple
+User={{openslides_user}}
+Group={{openslides_user}}
+WorkingDirectory={{openslides_directory}}
+ExecStart={{openslides_venv}}/bin/openslides start --local-installation
+Restart=on-abort
+
+[Install]
+WantedBy=multi-user.target

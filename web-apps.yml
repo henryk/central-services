@@ -3,3 +3,8 @@
   hosts: zabbix-server
   roles:
     - zabbix-server
+
+- name: Install OpenSlides
+  hosts: openslides-server
+  roles:
+    - openslides-server

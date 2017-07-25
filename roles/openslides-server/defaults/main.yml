@@ -1,0 +1,4 @@
+openslides_user: openslides
+openslides_user_home: "/home/{{openslides_user}}"
+openslides_directory: "{{openslides_user_home}}/OpenSlides"
+openslides_venv: "{{openslides_directory}}/.venv"
