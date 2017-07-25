@@ -38,8 +38,8 @@
   vars:
     ansible_become: False
 
-- name: Reload configuration cache on proxy
-  command: zabbix_proxy -R config_cache_reload
-  delegate_to: "{{zabbix_proxy}}"
-  when: zabbix_proxy is defined
-  changed_when: False
+# - name: Reload configuration cache on proxy
+#   command: zabbix_proxy -R config_cache_reload
+#   delegate_to: "{{zabbix_proxy}}"
+#   when: zabbix_proxy is defined
+#   changed_when: False
