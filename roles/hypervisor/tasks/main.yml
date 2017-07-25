@@ -15,7 +15,7 @@
     state: present
     vg: "{{ libvirt_vg_name }}"
     pvs: "{{ libvirt_vg_pvs }}"
-  when: libvirt_vg_pvs
+  when: libvirt_vg_pvs is defined and libvirt_vg_pvs|length
 
 - name: Define storage pool
   virt_pool:
@@ -53,13 +53,19 @@
     loop_var: domain_definition
   when: domain_definition.name not in libvirt_all_domains
 
+- name: Set autostart property
+  virt:
+    name: "{{item.name}}"
+    autostart: "{{(libvirt_domain_defaults|combine(item)).autostart}}"
+    command: info  ## Need to provide a command, but not a state!, for "autostart" to be updated
+  with_items: "{{ libvirt_domains }}"
+
 - name: "Start domain"
   vars:
     libvirt_domain: "{{libvirt_domain_defaults|combine(domain_definition)}}"
   virt:
     name: "{{libvirt_domain.name}}"
     state: running
-    autostart: "{{libvirt_domain.autostart}}"
   with_items: "{{ libvirt_domains }}"
   loop_control:
     loop_var: domain_definition

@@ -62,6 +62,6 @@
 - name: "Start new domain {{libvirt_domain.name}}"
   virt:
     name: "{{libvirt_domain.name}}"
-    state: running
+    command: start
     autostart: "{{libvirt_domain.autostart}}"
   when: libvirt_domain.autostart
