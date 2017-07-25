@@ -1,0 +1,15 @@
+zabbix_server_user: Admin
+zabbix_hostname: "{{inventory_hostname}}"
+zabbix_psk_key: "{{ pass_prefix + pass_name + '/_zabbix-agent-psk' }}"
+zabbix_psk: "{{ lookup('passwordstore', zabbix_psk_key ) }}"
+zabbix_psk_id: "{{ lookup('passwordstore', zabbix_psk_key + ' subkey=id' ) }}"
+zabbix_psk_file: "/etc/zabbix/zabbix_agentd.psk"
+
+zabbix_host_groups:
+  - "Linux servers"
+
+zabbix_link_templates:
+  - "Template OS Linux"
+
+# TODO Somehow get this from the inventory
+zabbix_proxy_ip: "{{zabbix_proxy if zabbix_proxy is defined else ''}}"

@@ -1,0 +1,43 @@
+- name: Install zabbix repository
+  apt:
+    deb: http://repo.zabbix.com/zabbix/3.2/ubuntu/pool/main/z/zabbix-release/zabbix-release_3.2-1+xenial_all.deb
+    state: present
+
+- name: Install zabbix agent from repository
+  apt: 
+    update_cache: true
+    name: '{{item}}'
+    state: present
+  with_items:
+    - zabbix-agent
+
+- name: Install zabbix agent PSK file
+  copy:
+    dest: "{{zabbix_psk_file}}"
+    owner: zabbix
+    mode: 0600
+    content: "{{zabbix_psk}}"
+
+- name: Configure zabbix agent
+  lineinfile:
+    path: /etc/zabbix/zabbix_agentd.conf
+    regexp: '^\s*{{ item.key }}\s*='
+    line: '{{ item.key }}={{ item.value }}'
+    insertafter: '^\s*#\s*{{ item.key }}'
+  with_dict:
+    Server: "{{zabbix_proxy_ip if zabbix_proxy is defined else zabbix_server}}" # Note: 'zabbix_proxy_ip if zabbix_proxy is defined' is correct
+    ServerActive: "{{zabbix_proxy_ip if zabbix_proxy is defined else zabbix_server}}"
+    Hostname: "{{zabbix_hostname}}"
+    TLSConnect: psk
+    TLSAccept: psk
+    TLSPSKIdentity: "{{ zabbix_psk_id }}"
+    TLSPSKFile: "{{ zabbix_psk_file }}"
+
+  notify: restart zabbix agent (debian)
+
+- name: Enable zabbix agent
+  service:
+    name: zabbix-agent
+    enabled: True
+    state: started
+    use: service  # Reference https://github.com/ansible/ansible-modules-core/issues/3764#issuecomment-284331673

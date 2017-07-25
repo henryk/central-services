@@ -1,0 +1,44 @@
+- name: Install zabbix repository
+  apt:
+    deb: http://repo.zabbix.com/zabbix/3.2/ubuntu/pool/main/z/zabbix-release/zabbix-release_3.2-1+xenial_all.deb
+    state: present
+
+- name: Install zabbix proxy from repository
+  apt: 
+    update_cache: true
+    name: '{{item}}'
+    state: present
+  with_items:
+    - zabbix-proxy-sqlite3
+
+- name: Install zabbix proxy PSK file
+  copy:
+    dest: "{{zabbix_psk_file}}"
+    owner: zabbix
+    mode: 0600
+    content: "{{zabbix_psk}}"
+
+- name: Configure zabbix proxy
+  lineinfile:
+    path: /etc/zabbix/zabbix_proxy.conf
+    regexp: '^\s*{{ item.key }}\s*='
+    line: '{{ item.key }}={{ item.value }}'
+    insertafter: '^\s*#\s*{{ item.key }}'
+  with_dict:
+    Server: "{{zabbix_server}}"
+    ProxyMode: 0
+    Hostname: "{{zabbix_hostname}}"
+    DBName: "/var/run/zabbix/zabbix_proxy.sqlite3"
+    TLSConnect: psk
+    TLSAccept: psk
+    TLSPSKIdentity: "{{ zabbix_psk_id }}"
+    TLSPSKFile: "{{ zabbix_psk_file }}"
+
+  notify: restart zabbix proxy (debian)
+
+- name: Enable zabbix proxy
+  service:
+    name: zabbix-proxy
+    enabled: True
+    state: started
+    use: service  # Reference https://github.com/ansible/ansible-modules-core/issues/3764#issuecomment-284331673

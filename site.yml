@@ -18,4 +18,5 @@
 - include: database-setup.yml
 - include: web-infrastructure.yml
 - include: web-apps.yml
+- include: zabbix.yml
 - include: run-updates.yml

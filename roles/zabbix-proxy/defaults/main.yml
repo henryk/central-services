@@ -1,0 +1,6 @@
+zabbix_server_user: Admin
+zabbix_hostname: "{{inventory_hostname}} proxy"
+zabbix_psk_key: "{{ pass_prefix + pass_name + '/_zabbix-proxy-psk' }}"
+zabbix_psk: "{{ lookup('passwordstore', zabbix_psk_key ) }}"
+zabbix_psk_id: "{{ lookup('passwordstore', zabbix_psk_key + ' subkey=id' ) }}"
+zabbix_psk_file: "/etc/zabbix/zabbix_proxy.psk"

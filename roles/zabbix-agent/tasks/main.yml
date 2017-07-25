@@ -1,0 +1,45 @@
+- name: Generate zabbix agent PSK
+  local_action: "shell pass list {{zabbix_psk_key}} > /dev/null || ( ( xxd -c 32 -l 32 -p /dev/urandom; echo -n 'id: '; xxd -c 10 -l 10 -p /dev/urandom ) | pass insert -m {{ zabbix_psk_key }} )"
+  vars:
+    ansible_become: False
+  register: zabbix_generate_psk
+  changed_when: '"is not in the password store" in zabbix_generate_psk.stderr'
+
+- name: Install zabbix agent for Debian based systems
+  include: debian.yml
+  static: no
+  when: ansible_os_family == 'Debian' and zabbix_server is defined
+
+# FIXME: RedHat
+
+- name: Configure zabbix host on the server
+  local_action:
+    module: zabbix_host
+    server_url: "http://{{zabbix_server}}/zabbix/"
+    login_user: "{{zabbix_server_user}}"
+    login_password: "{{zabbix_server_password}}"
+    host_name: "{{inventory_hostname}}"
+    host_groups: "{{ zabbix_host_groups }}"
+    link_templates: "{{ zabbix_link_templates }}"
+    status: enabled
+    state: present
+    tls_connect: "PSK"
+    tls_accept: ["PSK"]
+    tls_psk_identity: "{{ zabbix_psk_id }}"
+    tls_psk: "{{ zabbix_psk }}"
+    interfaces:
+      - type: 1
+        main: 1
+        useip: 1
+        ip: "{{ ip if ip is defined else ansible_all_ipv4_addresses[0] }}"
+        dns: ""
+        port: 10050
+    proxy: "{{ (zabbix_proxy + ' proxy') if zabbix_proxy is defined else omit}}"
+  vars:
+    ansible_become: False
+
+- name: Reload configuration cache on proxy
+  command: zabbix_proxy -R config_cache_reload
+  delegate_to: "{{zabbix_proxy}}"
+  when: zabbix_proxy is defined
+  changed_when: False

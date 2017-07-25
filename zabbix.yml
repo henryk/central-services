@@ -1,0 +1,11 @@
+---
+- name: Install zabbix proxy
+  hosts: hypervisors
+  roles:
+    - zabbix-proxy
+
+- name: Install zabbix agent
+  hosts: all
+  roles:
+    - zabbix-agent
+
