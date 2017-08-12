@@ -2,6 +2,6 @@
 - name: Set up hypervisors
   hosts: hypervisors
   roles:
-    - hypervisor
     - upgrade-reboot
+    - hypervisor
 

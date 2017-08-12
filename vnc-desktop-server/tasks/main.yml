@@ -1,0 +1,58 @@
+---
+- name: Install base packages
+  apt: state=present name={{item}}
+  with_items:
+    - xfce4
+    - xfce4-goodies
+    - tightvncserver
+
+- name: Create a dedicated vnc desktop user
+  user:
+    name: "{{vnc_desktop_user}}"
+    home: "{{vnc_desktop_user_home}}"
+    state: present
+    shell: /bin/bash
+
+- name: Remount /tmp with acl support (HACK HACK HACK)
+  command: mount / -o remount,acl
+  changed_when: false
+  args:
+    warn: false
+
+- name: Create VNC directory
+  file:
+    dest: "{{vnc_desktop_user_home}}/.vnc"
+    owner: "{{vnc_desktop_user}}"
+    group: "{{vnc_desktop_user}}"
+    mode: go-w
+    state: directory
+
+- name: Set VNC password
+  shell: |
+    echo "{{vnc_desktop_user_password}}" | vncpasswd -f > "{{vnc_desktop_user_home}}/.vnc/passwd"
+    chmod go= "{{vnc_desktop_user_home}}/.vnc/passwd"
+  args:
+    creates: "{{vnc_desktop_user_home}}/.vnc/passwd"
+  become_user: "{{vnc_desktop_user}}"
+
+- name: Set xstartup
+  copy:
+    content: |
+      #!/bin/bash
+      xrdb $HOME/.Xresources
+      startxfce4 &
+    dest: "{{vnc_desktop_user_home}}/.vnc/xstartup"
+    mode: a+rx,go-w
+  become_user: "{{vnc_desktop_user}}"
+
+- name: Create service file
+  template:
+    dest: "/etc/systemd/system/vncserver@.service"
+    src: "vncserver@.service.j2"
+
+- name: Enable and start service
+  systemd:
+    daemon_reload: yes
+    name: vncserver@1
+    enabled: yes
+    state: started

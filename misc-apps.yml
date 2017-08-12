@@ -1,0 +1,5 @@
+---
+- name: Install VNC desktops
+  hosts: vnc-desktop-server
+  roles:
+    - vnc-desktop-server
