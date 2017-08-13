@@ -20,4 +20,5 @@
 - include: web-apps.yml
 - include: misc-apps.yml
 - include: zabbix.yml
+- include: manage-users.yml
 - include: run-updates.yml

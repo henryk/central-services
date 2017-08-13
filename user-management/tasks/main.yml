@@ -1,0 +1,17 @@
+---
+- name: Handle user
+  include: tasks/handle_user.yml user={{user_definition_defaults|combine(user_definition)}}
+  static: no
+  with_dict: "{{users}}"
+  loop_control:
+    loop_var: user_loop
+  vars:
+    user_name: "{{user_loop.key}}"
+    user_definition: "{{user_loop.value}}"
+
+- name: Deleted user removal
+  user:
+    name: "{{item.key}}"
+    state: absent
+    remove: "{{ 'yes' if item.value.delete_home is defined and item.value.delete_home else 'no' }}"
+  with_dict: "{{users_deleted}}"

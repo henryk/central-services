@@ -1,0 +1,17 @@
+user_admin_groups: "{{ user_admin_groups_by_distribution[ansible_os_family] }}"
+user_admin_groups_by_distribution:
+  Debian:
+    - sudo
+    - adm
+  RedHat:
+    - wheel
+
+users: {}
+users_deleted: {}
+
+user_definition_defaults:
+  groups: []
+  groups_additional: []
+  ssh_keys: []
+  shell: /bin/bash
+  is_admin: False

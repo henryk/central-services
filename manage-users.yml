@@ -1,0 +1,7 @@
+---
+- name: Manage users
+  hosts: all
+  roles:
+    - user-management
+  
+  

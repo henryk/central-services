@@ -1,0 +1,17 @@
+---
+
+- name: "Create user {{user_name}}"
+  user:
+    name: "{{user_name}}"
+    append: yes
+    groups: "{{ (user_admin_groups if user.is_admin else []) + user.groups_additional }}"
+    comment: "{{user.comment|default(omit)}}"
+    home: "{{ user.home | default('/home/' + user_name) }}"
+    shell: "{{ user.shell }}"
+
+- name: Add SSH keys
+  authorized_key:
+    user: "{{user_name}}"
+    key: "{{item}}"
+  with_items: "{{user.ssh_keys}}"
+
