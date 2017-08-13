@@ -5,10 +5,17 @@
     - xfce4
     - xfce4-goodies
 
+- name: Check if TigerVNC is already installed
+  command: dpkg-query -W tigervncserver
+  register: tigervncserver_deb
+  failed_when: tigervncserver_deb.rc > 1
+  changed_when: tigervncserver_deb.rc == 1
+
 - name: Install TigerVNC
   apt:
     deb: https://bintray.com/tigervnc/stable/download_file?file_path=ubuntu-16.04LTS%2Famd64%2Ftigervncserver_1.8.0-1ubuntu1_amd64.deb
     state: present
+  when: tigervncserver_deb.rc == 1
 
 - name: Create a dedicated vnc desktop user
   user:
