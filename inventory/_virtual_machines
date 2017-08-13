@@ -8,7 +8,7 @@ except ImportError:
 	import simplejson as json
 
 LIST_MERGE = ("libvirt_domains", "libvirt_domains_deleted")
-DICT_MERGE = ("users", )
+DICT_MERGE = ("users", "users_deleted", "libvirt_domain_users", )
 
 def update_merged(container, key, value):
 	if key in LIST_MERGE:

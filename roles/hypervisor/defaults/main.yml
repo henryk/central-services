@@ -38,7 +38,7 @@ virt_builder_admin_groups:
   fedora:
     - wheel
 
-virt_builder_users: "{{ users }}"
+virt_builder_users: "{{ libvirt_domain_users }}"
 virt_builder_user_defaults:
   is_admin: False
   shell: /bin/bash
