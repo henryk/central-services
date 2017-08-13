@@ -15,7 +15,7 @@
   apt:
     deb: https://bintray.com/tigervnc/stable/download_file?file_path=ubuntu-16.04LTS%2Famd64%2Ftigervncserver_1.8.0-1ubuntu1_amd64.deb
     state: present
-  when: tigervncserver_deb.rc == 1
+  when: '"rc" in tigervncserver_deb and tigervncserver_deb.rc == 1'
 
 - name: Create a dedicated vnc desktop user
   user:
