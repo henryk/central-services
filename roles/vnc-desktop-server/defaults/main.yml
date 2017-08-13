@@ -1,4 +1,4 @@
 vnc_desktop_user: vnc
 vnc_desktop_user_home: "/home/{{vnc_desktop_user}}"
 vnc_desktop_user_password: "{{ lookup('passwordstore', pass_prefix + pass_name + '/vnc/' + vnc_desktop_user + ' create=true length=' + pass_generate_length ) }}"
-vnc_desktop_params: -depth 24 -geometry 1366x768
+vnc_desktop_params: -localhost -depth 24 -geometry 1366x768
