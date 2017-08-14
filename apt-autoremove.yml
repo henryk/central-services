@@ -1,0 +1,10 @@
+---
+- hosts: all
+  name: Autoremove packages
+  tasks:
+    - name: Autoremove packages
+      shell: apt -y autoremove
+      args:
+        warn: False
+
+
