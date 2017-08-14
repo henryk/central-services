@@ -8,4 +8,6 @@
   hosts: all
   roles:
     - zabbix-agent
+  vars:
+    zabbix_link_templates_from_role: "{{ (zabbix_link_templates_proxy if inventory_hostname in groups['hypervisors'] else []) + (zabbix_link_templates_server if inventory_hostname in groups['zabbix-server'] else []) }}"
 

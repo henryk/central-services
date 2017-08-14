@@ -20,7 +20,7 @@
     login_password: "{{zabbix_server_password}}"
     host_name: "{{inventory_hostname}}"
     host_groups: "{{ zabbix_host_groups }}"
-    link_templates: "{{ zabbix_link_templates }}"
+    link_templates: "{{ zabbix_link_templates_actual }}"
     status: enabled
     state: present
     tls_connect: "PSK"

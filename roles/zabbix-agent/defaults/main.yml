@@ -8,8 +8,22 @@ zabbix_psk_file: "/etc/zabbix/zabbix_agentd.psk"
 zabbix_host_groups:
   - "Linux servers"
 
-zabbix_link_templates:
+zabbix_link_templates_from_role: []
+
+zabbix_link_templates_actual: "{{ zabbix_link_templates + zabbix_link_templates_from_role }}"
+
+zabbix_link_templates: "{{ zabbix_link_templates_additional + zabbix_link_templates_default }}" # For *overwriting* in individual hosts
+
+zabbix_link_templates_additional: [] # For *adding* in individual hosts
+
+zabbix_link_templates_default:
   - "Template OS Linux"
+
+zabbix_link_templates_proxy:
+  - "Template App Zabbix Proxy"
+
+zabbix_link_templates_server:
+  - "Template App Zabbix Server"
 
 # TODO Somehow get this from the inventory
 zabbix_proxy_ip: "{{zabbix_proxy if zabbix_proxy is defined else ''}}"
