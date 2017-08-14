@@ -1,0 +1,11 @@
+---
+- name: Update and upgrade all packages (Debian/Ubuntu)
+  apt: update_cache=yes autoremove=yes upgrade=yes
+
+- name: Configure automatic upgrades to purge kernels
+  lineinfile:
+    path: /etc/apt/apt.conf.d/50unattended-upgrades
+    regexp: '^(\s*//)?\s*Unattended-Upgrade::Remove-Unused-Dependencies.*'
+    line: 'Unattended-Upgrade::Remove-Unused-Dependencies "true";'
+    state: present
+  when: ansible_distribution == 'Ubuntu'

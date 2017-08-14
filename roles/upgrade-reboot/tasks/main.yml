@@ -1,5 +1,4 @@
-- name: Update and upgrade all packages (Debian/Ubuntu)
-  apt: update_cache=yes autoremove=yes upgrade=yes
+- include: debian.yml
   when: ansible_os_family == 'Debian'
 
 - name: Upgrade all packages (RedHat/Fedora)
