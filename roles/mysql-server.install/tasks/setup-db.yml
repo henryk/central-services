@@ -1,0 +1,23 @@
+
+- name: Create database user
+  mysql_user:
+    name: "{{mysql_setup_db_user}}"
+    password: "{{mysql_setup_db_password}}"
+    state: present
+    priv: "{{mysql_setup_db_database}}.*:ALL"
+    login_user: root
+    login_password: "{{mysql_root_password}}"
+
+- name: Create database
+  mysql_db:
+    login_user: root
+    login_password: "{{mysql_root_password}}"
+    name: "{{mysql_setup_db_database}}"
+    state: present
+    encoding: utf8
+    collation: utf8_bin
+  register: mysql_setup_db_database_created
+
+- name: Export creation result
+  set_fact:
+    mysql_setup_db_database_created: "{{ mysql_setup_db_database_created }}"

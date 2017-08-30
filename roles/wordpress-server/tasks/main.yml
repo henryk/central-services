@@ -1,0 +1,137 @@
+- name: Install base packages
+  apt: state=present name={{item}}
+  with_items:
+    - apache2
+    - php
+    - libapache2-mod-php
+    - php-mcrypt
+    - php-mysql
+    - php-curl
+    - php-gd
+    - php-mbstring
+    - php-mcrypt
+    - php-xml
+    - php-xmlrpc
+
+- name: Set up DB
+  include_role:
+    name: mysql-server.install
+    tasks_from: setup-db
+    allow_duplicates: true
+  vars:
+    mysql_setup_db_user: "{{wordpress_mysql_user}}"
+    mysql_setup_db_password: "{{wordpress_mysql_password}}"
+    mysql_setup_db_database: "{{wordpress_mysql_database}}"
+
+- name: Activate mod_rewrite
+  apache2_module:
+    name: rewrite
+    state: present
+  notify:
+    - restart apache2
+
+- name: Allow .htaccess override (1/2)
+  copy:
+    content: |
+      <Directory {{wordpress_installation_path}}/>
+        AllowOverride All
+      </Directory>
+    dest: "/etc/apache2/conf-available/wordpress_{{wordpress_installation_path_safe}}.conf"
+    owner: 'root'
+    group: 'root'
+    mode: '0644'
+  notify:
+    - restart apache2
+
+- name: Allow .htaccess override (2/2)
+  file:
+    src: '/etc/apache2/conf-available/wordpress_{{wordpress_installation_path_safe}}.conf'
+    dest: '/etc/apache2/conf-enabled/wordpress_{{wordpress_installation_path_safe}}.conf'
+    owner: 'root'
+    group: 'root'
+    state: link
+  notify:
+    - restart apache2
+
+- name: Create wordpress directory
+  file:
+    dest: '{{wordpress_installation_path}}'
+    state: directory
+
+- name: Check for initial installation
+  stat:
+    path: '{{wordpress_installation_path}}/wp-trackback.php'
+  register: wp_trackback
+
+- name: Download wordpress
+  get_url: 
+    dest: '{{wordpress_installation_path}}/wordpress.tar.gz'
+    url: 'https://wordpress.org/wordpress-{{wordpress_version}}.tar.gz'
+    checksum: 'sha1:{{wordpress_sha1}}'
+  when: not wp_trackback.stat.exists
+
+- name: Unpack wordpress
+  unarchive:
+    dest: '{{wordpress_installation_path}}'
+    src: '{{wordpress_installation_path}}/wordpress.tar.gz'
+    remote_src: true
+    extra_opts:
+      - '--strip-components=1'
+  when: not wp_trackback.stat.exists
+
+- name: Copy default configuration
+  copy:
+    src: '{{wordpress_installation_path}}/wp-config-sample.php'
+    dest: '{{wordpress_installation_path}}/wp-config.php'
+    remote_src: true
+    force: no
+  register: wp_config_initial
+
+- name: Set random keys
+  lineinfile:
+    state: present
+    path: '{{wordpress_installation_path}}/wp-config.php'
+    regexp: "^\\s*(?:#\\s*)?define\\s*\\(\\s*['\"]{{item}}['\"]"
+    line: "define('{{item}}', '{{ lookup('pipe', 'xxd -c 32 -l 32 -p /dev/urandom') }}');"
+  with_items:
+    - AUTH_KEY
+    - SECURE_AUTH_KEY
+    - LOGGED_IN_KEY
+    - NONCE_KEY
+    - AUTH_SALT
+    - SECURE_AUTH_SALT
+    - LOGGED_IN_SALT
+    - NONCE_SALT
+  when: wp_config_initial.changed or wordpress_force_rekey or wordpress_force_all
+
+- name: Set configuration
+  lineinfile:
+    state: present
+    path: '{{wordpress_installation_path}}/wp-config.php'
+    regexp: "^\\s*(?:#\\s*)?define\\s*\\(\\s*['\"]{{item.key}}['\"]"
+    line: "define('{{item.key}}', '{{ item.value }}');"
+  with_dict:
+    DB_NAME: '{{wordpress_mysql_database}}'
+    DB_USER: '{{wordpress_mysql_user}}'
+    DB_PASSWORD: '{{wordpress_mysql_password}}'
+    FS_METHOD: 'direct'
+
+- name: Touch .htaccess
+  copy:
+    content: ""
+    dest: '{{wordpress_installation_path}}/.htaccess'
+    force: no
+    owner: www-data
+
+- name: Change permissions
+  file:
+    dest: '{{wordpress_installation_path}}/{{item.path}}'
+    state: '{{item.state|default("file")}}'
+    owner: '{{item.owner|default("www-data")}}'
+    mode: '{{item.mode|default(omit)}}'
+    recurse: '{{item.recurse|default(omit)}}'
+  with_items:
+    - { path: '.htaccess' }
+    - { path: 'index.html', state: 'absent' }
+    - { path: 'wp-content', state: 'directory', recurse: true }
+    - { path: 'wp-data', state: 'directory', recurse: true }

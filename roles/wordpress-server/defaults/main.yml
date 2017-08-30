@@ -1,0 +1,10 @@
+wordpress_mysql_user: wordpress
+wordpress_mysql_password: "{{ lookup('passwordstore', pass_prefix + pass_name + '/mysql/' + wordpress_mysql_user + ' create=true length=' + pass_generate_length ) }}"
+wordpress_mysql_database: wordpress
+wordpress_installation_path: /var/www/html
+wordpress_version: "4.8.1"
+wordpress_sha1: "5376cf41403ae26d51ca55c32666ef68b10e35a4"
+
+wordpress_installation_path_safe: "{{wordpress_installation_path|regex_replace('_','__')|regex_replace('/','_')}}"
+wordpress_force_rekey: false
+wordpress_force_all: false

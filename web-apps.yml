@@ -8,3 +8,8 @@
   hosts: openslides-server
   roles:
     - openslides-server
+
+- name: Install Wordpress
+  hosts: wordpress-server
+  roles:
+    - wordpress-server

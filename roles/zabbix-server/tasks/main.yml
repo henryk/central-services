@@ -25,24 +25,15 @@
     - zabbix-frontend-php
     - zabbix-agent
 
-- name: Create zabbix database user
-  mysql_user:
-    name: "{{zabbix_mysql_user}}"
-    password: "{{zabbix_mysql_password}}"
-    state: present
-    priv: "{{zabbix_mysql_database}}.*:ALL"
-    login_user: root
-    login_password: "{{mysql_root_password}}"
-
-- name: Create zabbix database
-  mysql_db:
-    login_user: root
-    login_password: "{{mysql_root_password}}"
-    name: "{{zabbix_mysql_database}}"
-    state: present
-    encoding: utf8
-    collation: utf8_bin
-  register: zabbix_database_created
+- name: Set up DB
+  include_role:
+    name: mysql-server.install
+    tasks_from: setup-db
+    allow_duplicates: true
+  vars:
+    mysql_setup_db_user: "{{zabbix_mysql_user}}"
+    mysql_setup_db_password: "{{zabbix_mysql_password}}"
+    mysql_setup_db_database: "{{zabbix_mysql_database}}"
 
 - name: Import zabbix database scheme
   mysql_db:
@@ -51,7 +42,7 @@
     name: "{{zabbix_mysql_database}}"
     state: import
     target: /usr/share/doc/zabbix-server-mysql/create.sql.gz   
-  when: zabbix_database_created.changed
+  when: mysql_setup_db_database_created.changed
 
 - name: Set zabbix admin password
   command: 'mysql -u {{zabbix_mysql_user}} -p{{zabbix_mysql_password}} {{zabbix_mysql_database}} -ne "{{ sql }}"'
