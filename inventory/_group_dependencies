@@ -1,4 +1,11 @@
 [zabbix-server]
 
+[zabbix-proxies]
+
+[hypervisors]
+
+[zabbix-proxies:children]
+hypervisors
+
 [mysql-server:children]
 zabbix-server
