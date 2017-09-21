@@ -1,5 +1,5 @@
 ---
 - name: MySQL server installation
-  hosts: mysql-server:!zabbix-server:!wordpress-server
+  hosts: mysql-server:!zabbix-server:!wordpress-server:!nextcloud-server
   roles:
     - mysql-server.install

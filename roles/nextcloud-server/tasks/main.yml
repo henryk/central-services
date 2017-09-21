@@ -1,0 +1,113 @@
+- name: Install base packages
+  apt: state=present name={{item}}
+  with_items:
+    - apache2
+    - php
+    - libapache2-mod-php7.0
+    - php7.0-gd
+    - php7.0-json
+    - php7.0-mysql
+    - php7.0-curl
+    - php7.0-mbstring
+    - php7.0-intl
+    - php7.0-mcrypt
+    - php-imagick
+    - php7.0-xml
+    - php7.0-zip
+    - acl  ## See HACK HACK HACK in initial-install
+
+- name: Remount /tmp with acl support (HACK HACK HACK)
+  command: mount / -o remount,acl
+  changed_when: false
+  args:
+    warn: false
+
+- name: Set up DB
+  include_role:
+    name: mysql-server.install
+    tasks_from: setup-db
+    allow_duplicates: true
+  vars:
+    mysql_setup_db_user: "{{nextcloud_mysql_user}}"
+    mysql_setup_db_password: "{{nextcloud_mysql_password}}"
+    mysql_setup_db_database: "{{nextcloud_mysql_database}}"
+    mysql_setup_db_encoding: "utf8mb4"
+    mysql_setup_db_collation: "utf8mb4_general_ci"
+
+- name: Activate mod_rewrite
+  apache2_module:
+    name: "{{item}}"
+    state: present
+  with_items:
+    - rewrite
+    - headers
+    - env
+    - dir
+    - mime
+  notify:
+    - restart apache2
+
+- name: Allow .htaccess override (1/2)
+  copy:
+    content: |
+      <Directory {{nextcloud_installation_path}}/>
+        Options +FollowSymlinks
+        AllowOverride All
+
+        <IfModule mod_dav.c>
+          Dav off
+        </IfModule>
+
+        SetEnv HOME {{nextcloud_installation_path}}
+        SetEnv HTTP_HOME {{nextcloud_installation_path}}
+
+      </Directory>
+    dest: "/etc/apache2/conf-available/nextcloud_{{nextcloud_installation_path_safe}}.conf"
+    owner: 'root'
+    group: 'root'
+    mode: '0644'
+  notify:
+    - restart apache2
+
+- name: Allow .htaccess override (2/2)
+  file:
+    src: '/etc/apache2/conf-available/nextcloud_{{nextcloud_installation_path_safe}}.conf'
+    dest: '/etc/apache2/conf-enabled/nextcloud_{{nextcloud_installation_path_safe}}.conf'
+    owner: 'root'
+    group: 'root'
+    state: link
+  notify:
+    - restart apache2
+
+- name: Create nextcloud directory
+  file:
+    dest: '{{nextcloud_installation_path}}'
+    state: directory
+
+- name: Check for initial installation
+  stat:
+    path: '{{nextcloud_installation_path}}/cron.php'
+  register: cron_php
+
+- name: Run initial installation
+  include: tasks/initial-install.yml
+  static: no
+  when: not cron_php.stat.exists
+
+- name: Install cron job
+  cron:
+    minute: '*/15'
+    user: www-data
+    job: "php -f {{nextcloud_installation_path}}/cron.php"
+    state: present
+    name: "Nextcloud regular cron job"
+
+- name: Configure nextcloud to use cron
+  shell: |
+    cd "{{nextcloud_installation_path}}"
+    if [ $(php occ config:app:get core backgroundjobs_mode) != "cron" ]; then
+      php occ background:cron
+    fi
+  become_user: "www-data"
+  register: set_background_mode
+  changed_when: "'cron' in set_background_mode.stdout"

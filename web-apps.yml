@@ -13,3 +13,8 @@
   hosts: wordpress-server
   roles:
     - wordpress-server
+
+- name: Install NextCloud
+  hosts: nextcloud-server
+  roles:
+    - nextcloud-server
