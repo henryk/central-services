@@ -1,17 +1,7 @@
-[zabbix-server]
-
 [zabbix-proxies]
 
 [hypervisors]
 
-[wordpress-server]
-
-[nextcloud-server]
-
 [zabbix-proxies:children]
 hypervisors
 
-[mysql-server:children]
-zabbix-server
-wordpress-server
-nextcloud-server

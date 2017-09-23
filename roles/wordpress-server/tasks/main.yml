@@ -15,7 +15,7 @@
 
 - name: Set up DB
   include_role:
-    name: mysql-server.install
+    name: mysql-server
     tasks_from: setup-db
     allow_duplicates: true
   vars:

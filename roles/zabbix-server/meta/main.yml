@@ -1,4 +1,4 @@
 ---
 dependencies:
-  - role: mysql-server.install
+  - role: mysql-server
 
