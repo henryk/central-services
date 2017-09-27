@@ -14,7 +14,11 @@
     - php-imagick
     - php7.0-xml
     - php7.0-zip
+    - php-redis
+    - php-apcu
     - acl  ## See HACK HACK HACK in initial-install
+  notify:
+    - restart apache2
 
 - name: Remount /tmp with acl support (HACK HACK HACK)
   command: mount / -o remount,acl
@@ -34,7 +38,7 @@
     mysql_setup_db_encoding: "utf8mb4"
     mysql_setup_db_collation: "utf8mb4_general_ci"
 
-- name: Activate mod_rewrite
+- name: Activate mod_rewrite and others
   apache2_module:
     name: "{{item}}"
     state: present
@@ -111,3 +115,16 @@
   become_user: "www-data"
   register: set_background_mode
   changed_when: "'cron' in set_background_mode.stdout"
+
+- name: Configure nextcloud to use redis and APCu
+  shell: |
+    cd "{{nextcloud_installation_path}}"
+    md5sum config/config.php
+    php occ config:system:set redis host --value 'localhost' || exit 1
+    php occ config:system:set redis port --type integer --value 6379 || exit 1
+    php occ config:system:set memcache.local --value '\OC\Memcache\APCu' || exit 1
+    php occ config:system:set memcache.locking --value '\OC\Memcache\Redis' || exit 1
+    md5sum config/config.php
+  become_user: "www-data"
+  register: configure_nextcloud_redis
+  changed_when: configure_nextcloud_redis.stdout_lines[0] != configure_nextcloud_redis.stdout_lines[-1]

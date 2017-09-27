@@ -1,4 +1,5 @@
 ---
 dependencies:
   - role: mysql-server
+  - role: redis-server
 
