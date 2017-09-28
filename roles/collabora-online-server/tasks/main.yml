@@ -1,0 +1,22 @@
+- name: Get the Collabora Online signing key
+  apt_key:
+    keyserver: keyserver.ubuntu.com
+    state: present
+    id: 6CCEA47B2281732DF5D504D00C54D189F4BA284D
+
+- name: Install pre-requisite apt package
+  apt:
+    state: present
+    name: apt-transport-https
+
+- name: Install the Collabora Online repository
+  lineinfile:
+    path: /etc/apt/sources.list
+    state: present
+    line: 'deb https://www.collaboraoffice.com/repos/CollaboraOnline/CODE ./'
+
+- name: Install the Collabora Online package
+  apt:
+    update_cache: yes
+    state: present
+    name: ['loolwsd', 'code-brand']

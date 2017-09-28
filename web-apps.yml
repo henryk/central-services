@@ -18,3 +18,8 @@
   hosts: nextcloud-server
   roles:
     - nextcloud-server
+
+- name: Install Collabora Online
+  hosts: collabora-online-server
+  roles:
+    - collabora-online-server
