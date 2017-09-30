@@ -8,6 +8,8 @@
     - git
     - acl
     - openssl 
+    - dnsutils ## HACK
+    - iptables ## HACK
 
 - name: Create directories
   file: path={{item.directory}} state=directory mode={{item.mode}}
@@ -37,3 +39,12 @@
     query_a: "*.web[?frontend=='{{inventory_hostname}}'][].letsencrypt"
     query_b: "[].{staging:staging, email:email}[]"
 
+- name: "Set up HTTPS"
+  include_role:
+    name: web-frontend
+    tasks_from: setup-ssl
+    allow_duplicates: true
+  static: no
+  vars:
+    cert_dir: "{{ssl_cert_directory}}"
+    key_dir: "{{ssl_key_directory}}"

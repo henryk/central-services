@@ -1,0 +1,46 @@
+# {{ ansible_managed }}
+
+{% for hostname in hostvars -%}
+    {%- set managed_domains = hostvars[hostname].web|default({})|json_query("[?frontend == "+inventory_hostname+"]") -%}
+    {%- if managed_domains -%}
+
+        {%- for domain in managed_domains %}
+        {%- set domain = web_defaults|combine(domain) %}
+            {%- if domain.ssl -%}
+
+upstream {{hostname}}_{{domain.name}}_ssl { server {{hostvars[hostname].internal_ip}}:{{domain.port}} ; }
+                
+                {% for name in ([domain.name]+ (domain.aliases or [])) %}
+server {
+    listen 443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name {{name}};
+  
+
+    ssl_certificate {{cert_dir}}/{{domain.name}}-chained.crt;
+    ssl_certificate_key {{key_dir}}/{{domain.name}}.key;
+    ssl_trusted_certificate {{cert_dir}}/{{domain.name}}-full.crt;
+    include snippets/ssl.conf;
+    ssl_stapling on;
+    ssl_stapling_verify on;
+
+    location / {
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Ssl on;
+            proxy_set_header Host {{name}};
+            proxy_read_timeout 300s;
+            proxy_pass http://{{hostname}}_{{domain.name}}_ssl;
+    }
+
+
+}
+                {% endfor %}
+            {% endif %}
+        {% endfor -%}
+
+
+    {% endif -%}
+{%- endfor %}
+

@@ -1,0 +1,16 @@
+---
+- name: Create configuration file for HTTPS
+  template:
+    dest: /etc/nginx/sites-available/ansible-https
+    src: templates/ansible-https.j2
+  notify:
+    - restart nginx
+
+- name: Enable HTTPS configuration
+  file:
+    dest: /etc/nginx/sites-enabled/ansible-https
+    src: /etc/nginx/sites-available/ansible-https
+    state: link
+  notify:
+    - restart nginx
+

@@ -26,7 +26,9 @@ for domainreq in "${CSR_BASE}"/*.csr; do
                         python acme_tiny.py --ca "${ca_url}" --account-key "${keyfile}" --csr "${domainreq}" --acme-dir "${CHAL_BASE}" > crt.tmp && \
                         mv crt.tmp "${domainout}/${domain}.crt" && \
                         wget --quiet https://letsencrypt.org/certs/lets-encrypt-x3-cross-signed.pem -O "${domainout}/${domain}-intermediate.crt" && \
-                        cat "${domainout}/${domain}.crt" "${domainout}/${domain}-intermediate.crt" > "${domainout}/${domain}-chained.crt"
+                        wget --quiet https://letsencrypt.org/certs/isrgrootx1.pem  -O "${domainout}/${domain}-root.crt" && \
+                        cat "${domainout}/${domain}.crt" "${domainout}/${domain}-intermediate.crt" > "${domainout}/${domain}-chained.crt" && \
+                        cat "${domainout}/${domain}.crt" "${domainout}/${domain}-intermediate.crt" "${domainout}/${domain}-root.crt" > "${domainout}/${domain}-full.crt"
                 fi
         fi
 done

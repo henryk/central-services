@@ -11,5 +11,8 @@
       shell: |
         {{acme_path}}/do_renew.sh "{{csr_subdir}}" "{{ca_url}}"
       become_user: '{{letsencrypt_handler_conf.user}}'
+
+    ## FIXME Install cronjob
+
   vars:
     ca_url: "{{ 'https://acme-staging.api.letsencrypt.org' if account_data.staging else 'https://acme-v01.api.letsencrypt.org' }}"
