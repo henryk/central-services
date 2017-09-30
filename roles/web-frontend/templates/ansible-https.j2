@@ -6,9 +6,10 @@
 
         {%- for domain in managed_domains %}
         {%- set domain = web_defaults|combine(domain) %}
-            {%- if domain.ssl -%}
+        {%- set upstream = hostname + "_" + domain.name + "_ssl" -%}
+            {%- if domain.ssl %}
 
-upstream {{hostname}}_{{domain.name}}_ssl { server {{hostvars[hostname].internal_ip}}:{{domain.port}} ; }
+upstream {{upstream}} { server {{hostvars[hostname].internal_ip}}:{{domain.port}} ; }
                 
                 {% for name in ([domain.name]+ (domain.aliases or [])) %}
 server {
@@ -24,16 +25,29 @@ server {
     ssl_stapling on;
     ssl_stapling_verify on;
 
-    location / {
+            {% for location in ['/'] + (domain.websockets or []) %}
+    location {{location}} {
             proxy_set_header X-Real-IP $remote_addr;
             proxy_set_header X-Forwarded-Proto $scheme;
             proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
             proxy_set_header X-Forwarded-Ssl on;
             proxy_set_header Host {{name}};
-            proxy_read_timeout 300s;
-            proxy_pass http://{{hostname}}_{{domain.name}}_ssl;
-    }
 
+                {% if location in (domain.websockets or []) %}
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection "Upgrade";
+            proxy_read_timeout 36000s;
+                {% else %}
+            proxy_read_timeout 300s;
+                {% endif %}
+            proxy_pass http{{ 's' if domain.proxy_ssl else ''}}://{{upstream}};
+    }
+            {% endfor %}
+
+
+            {% if domain.extra %}
+                {{domain.extra}}
+            {% endif %}
 
 }
                 {% endfor %}

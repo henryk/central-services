@@ -15,8 +15,45 @@
     state: present
     line: 'deb https://www.collaboraoffice.com/repos/CollaboraOnline/CODE ./'
 
-- name: Install the Collabora Online package
+- name: Install the Collabora Online package, other packages
   apt:
     update_cache: yes
     state: present
-    name: ['loolwsd', 'code-brand']
+    name: ['loolwsd', 'code-brand', 'openssl']
+  notify:
+    - restart loolwsd
+
+- name: Create key for self-signed certificate
+  shell: |
+    openssl genrsa -out /etc/loolwsd/key.pem 4096
+  args:
+    creates: /etc/loolwsd/key.pem
+  notify:
+    - restart loolwsd
+
+- name: Create self-signed certificate
+  shell: |
+    openssl req -x509 -key /etc/loolwsd/key.pem -out /etc/loolwsd/cert.pem -new -days 9131 -subj "/C=DE/ST=BW/L=Stuttgart/O=Dummy Authority/CN={{inventory_hostname}}"
+    cp /etc/loolwsd/cert.pem /etc/loolwsd/ca-chain.cert.pem
+  args:
+    creates: /etc/loolwsd/cert.pem
+  notify:
+    - restart loolwsd
+
+- name: Configure WOPI allowed hosts
+  lineinfile:
+    path: /etc/loolwsd/loolwsd.xml
+    state: present
+    regexp: '<host(\s[^>]+)?>{{item|regex_escape()|regex_escape()}}<'
+    line: '<host desc="Regex pattern of hostname to allow or deny." allow="true">{{item|regex_escape()}}</host>'
+    insertbefore: '<max_file_size(\s[^>]+)?>'
+  with_items: "{{ (collabora|default_hash(collabora_defaults)).wopi }}"
+  notify:
+    - restart loolwsd
+
+- name: Start and enable loolwsd
+  service:
+    name: loolwsd
+    enabled: True
+    state: started
+    use: service  # Reference https://github.com/ansible/ansible-modules-core/issues/3764#issuecomment-284331673
