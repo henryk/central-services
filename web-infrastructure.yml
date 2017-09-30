@@ -1,11 +1,6 @@
 ---
-- name: Basic install of frontend
+- name: Basic install of frontend with letsencrypt
   hosts: web-frontend
   roles:
-    - web-frontend.install
-
-- name: Set up separate let's encrypt handler
-  hosts: letsencrypt-handler
-  roles:
-    - letsencrypt.install
-
+    - web-frontend
+    - letsencrypt

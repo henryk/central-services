@@ -13,7 +13,9 @@ server {
     listen 80;
     listen [::]:80;
     server_name {{domain.name}};
+{% if 'letsencrypt' in domain and domain.letsencrypt %}
     include snippets/acme.conf;
+{% endif %}
   
             {% if domain.ssl == 'force' %}
 

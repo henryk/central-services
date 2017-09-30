@@ -1,28 +1,29 @@
 #!/bin/bash
+csr_subdir=$1
+ca_url=$2
+
+[ -z "${csr_subdir}" -o -z "${ca_url}" ] && exit 1
+
 HOME_BASE="{{home}}/"
-CHAL_BASE="{{dirs.challenge}}"
-CERT_BASE="{{dirs.certificates}}"
+CSR_BASE="{{ssl_directory}}/${csr_subdir}"
+CHAL_BASE="{{acme_challenge_directory}}"
+CERT_BASE="{{ssl_cert_directory}}"
 
-keyfile=$1
-subdir=$2
-
-[ -o "${keyfile}" -o -z "{subdir}" ] || exit 1
-
-cd "{{dirs.acme}}"
+cd "{{acme_path}}"
 
 echo -n "Running at "
 date
-keybase=`basename "${keyfile}" .key`
 ##echo "Keybase ${keybase}"
-for domainreq in "${keybase}"/"${subdir}"/*.req; do
+keyfile="{{acme_path}}/${csr_subdir}.key"
+for domainreq in "${CSR_BASE}"/*.csr; do
         if [ -r "${domainreq}" ]; then
-                domain=`basename "${domainreq}" .req`
-                domainout="${CERT_BASE}/${keybase}/${subdir}"
+                domain=`basename "${domainreq}" .csr`
+                domainout="${CERT_BASE}/"
                 mkdir -p "${domainout}"
                 echo "Domain ${domain} age" $(( $(date +"%s") - $(stat -c "%Y" "${domainout}/${domain}.crt" 2> /dev/null || echo 0) ))
                 if [ \! -e "${domainout}/${domain}.crt" -o \(  $(( $(date +"%s") - $(stat -c "%Y" "${domainout}/${domain}.crt" 2> /dev/null || echo 0) )) -gt 2592000  \) ]; then
                         echo Renewing ${domain}
-                        python acme_tiny.py --account-key "${keyfile}" --csr "${domainreq}" --acme-dir "${CHAL_BASE}" > crt.tmp && \
+                        python acme_tiny.py --ca "${ca_url}" --account-key "${keyfile}" --csr "${domainreq}" --acme-dir "${CHAL_BASE}" > crt.tmp && \
                         mv crt.tmp "${domainout}/${domain}.crt" && \
                         wget --quiet https://letsencrypt.org/certs/lets-encrypt-x3-cross-signed.pem -O "${domainout}/${domain}-intermediate.crt" && \
                         cat "${domainout}/${domain}.crt" "${domainout}/${domain}-intermediate.crt" > "${domainout}/${domain}-chained.crt"

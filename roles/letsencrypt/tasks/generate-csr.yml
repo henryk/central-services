@@ -1,0 +1,27 @@
+- debug:
+    msg: "{{inventory_hostname}} {{domain}}"
+
+- name: Generate key
+  command: openssl genrsa -out {{ssl_key_directory}}/{{domain.name}}.key  {{rsa_keysize}}
+  args:
+    creates: "{{ssl_key_directory}}/{{domain.name}}.key"
+
+- name: Create CSR for domain in account
+  block:
+    - name: Create directory
+      file:
+        path: "{{ssl_directory}}/{{csr_subdir}}"
+        state: directory
+        mode: "a+rX"
+
+    - name: Generate CSR
+      shell: |
+        openssl req -new -sha256 -key "{{ssl_key_directory}}/{{domain.name}}.key" \
+          -subj "/CN={{domain.name}}" -reqexts SAN -out "{{ssl_directory}}/{{csr_subdir}}/{{domain.name}}.csr" -config \
+          <(cat /etc/ssl/openssl.cnf <(printf "[SAN]\nsubjectAltName=DNS:{{ ([domain.name]+ (domain.aliases or [])) | join(',DNS:') }}"))
+      args:
+        creates: "{{ssl_directory}}/{{csr_subdir}}/{{domain.name}}.csr"
+        executable: "/bin/bash"
+
+  vars:
+    account_data: "{{domain.letsencrypt}}"

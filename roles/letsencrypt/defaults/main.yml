@@ -1,0 +1,18 @@
+letsencrypt_handler_defaults:
+  user: letsencrypt-handler
+  acme_tiny_version: '7ef9164dc141f369f5f92a1132b3ef9e12e95b73'
+
+letsencrypt_handler: {}
+
+letsencrypt: {}
+
+ssl_directory: /etc/ssl
+ssl_key_directory: "{{ssl_directory}}/private"
+ssl_cert_directory: "{{ssl_directory}}/letsencrypt-out"
+csr_subdir: "LE_{{ 'staging_' if account_data.staging else 'production_'}}{{account_data.email}}"
+rsa_keysize: 4096
+
+home: "/home/{{letsencrypt_handler_conf.user}}"
+acme_path: "{{home}}/acme-tiny"
+
+acme_challenge_directory: "/var/www/acme-challenge"  ## FIXME Compare web-frontend

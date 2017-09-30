@@ -1,3 +1,0 @@
-ssl_csr_directory: /etc/ssl
-ssl_key_directory: "{{ssl_csr_directory}}/private"
-rsa_keysize: 4096

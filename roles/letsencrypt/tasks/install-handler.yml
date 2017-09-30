@@ -1,14 +1,4 @@
 ---
-- name: Install basic packages
-  apt:
-    name: "{{item}}"
-    state: present
-  with_items:
-    - lighttpd
-    - cron
-    - git
-    - acl  ## Set HACK HACK HACK below
-
 - name: Create dedicated letsencrypt-handler user
   user:
     name: "{{letsencrypt_handler_conf.user}}"
@@ -31,11 +21,18 @@
 
 - name: Set directory permissions
   file:
-    path: '{{item}}'
+    path: '{{item.dir}}'
     state: directory
-    mode: go=
-    owner: "{{letsencrypt_handler_user}}"
+    mode: '{{item.perm}}'
+    owner: "{{letsencrypt_handler_user.uid}}"
   with_items:
     - { dir: '{{letsencrypt_handler_user.home}}', perm: 'go=' }
     - { dir: '{{letsencrypt_handler_user.home}}/acme-tiny', perm: 'go='}
-    - { dir: '{{letsencrypt_handler_user.home}}/public_html', perm: 'a+rX' }
+    - { dir: '{{acme_challenge_directory}}', perm: 'a+rX' }
+    - { dir: '{{ssl_cert_directory}}', perm: 'a+rX' }
+
+- name: Install renew script
+  template:
+    dest: '{{acme_path}}/do_renew.sh'
+    src: 'do_renew.sh.j2'
+    mode: 'a+x'

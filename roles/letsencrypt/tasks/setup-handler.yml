@@ -1,0 +1,15 @@
+- name: Create account key
+  command: 'openssl genrsa -out "{{account_key_file}}"  4096'
+  args:
+    creates: "{{account_key_file}}"
+  vars:
+    account_key_file: "{{acme_path}}/{{csr_subdir}}.key"
+
+- name: Install certificate and renew
+  block:
+    - name: Run renewal
+      shell: |
+        {{acme_path}}/do_renew.sh "{{csr_subdir}}" "{{ca_url}}"
+      become_user: '{{letsencrypt_handler_conf.user}}'
+  vars:
+    ca_url: "{{ 'https://acme-staging.api.letsencrypt.org' if account_data.staging else 'https://acme-v01.api.letsencrypt.org' }}"

@@ -20,6 +20,21 @@
   notify:
     - restart nginx
 
+- name: Prepare SSL
+  block:
+    - name: Generate custom DH parameters
+      command: openssl dhparam 4096 -out /etc/nginx/dhparam.pem
+      args: 
+        creates: /etc/nginx/dhparam.pem
+
+    - name: Install configuration snippets
+      template:
+        dest: /etc/nginx/snippets/{{item}}
+        src: "{{item}}.j2"
+      with_items:
+        - acme.conf
+        - ssl.conf
+
 - name: Create configuration file for HTTP
   template:
     dest: /etc/nginx/sites-available/ansible-http
@@ -34,3 +49,10 @@
     state: link
   notify:
     - restart nginx
+
+- name: Start and enable nginx
+  service:
+    name: nginx
+    enabled: True
+    state: started
+    use: service  # Reference https://github.com/ansible/ansible-modules-core/issues/3764#issuecomment-284331673
