@@ -51,6 +51,24 @@
   notify:
     - restart apache2
 
+- name: Activate PHP opcache
+  ini_file:
+    path: /etc/php/7.0/apache2/php.ini
+    section: opcache
+    state: present
+    option: "opcache.{{item.key}}"
+    value: "{{item.value}}"
+  with_dict:
+    enable: 1
+    enable_cli: 1
+    interned_strings_buffer: 8
+    max_accelerated_files: 10000
+    memory_consumption: 128
+    save_comments: 1
+    revalidate_freq: 1
+  notify:
+    - restart apache2
+
 - name: Allow .htaccess override (1/2)
   copy:
     content: |
@@ -115,6 +133,26 @@
   become_user: "www-data"
   register: set_background_mode
   changed_when: "'cron' in set_background_mode.stdout"
+
+## FIXME Configure trusted domains
+- name: Get trusted domains
+  shell: |
+    cd "{{nextcloud_installation_path}}"
+    php occ config:system:get trusted_domains
+  become_user: "www-data"
+  register: trusted_domains
+  changed_when: false
+
+- name: Configure nextcloud for domain and base URL
+  shell: |
+    cd "{{nextcloud_installation_path}}"
+    if [ $(php occ config:system:get htaccess.RewriteBase) != "/" ]; then
+      php occ config:system:set htaccess.RewriteBase --value '/'
+      php occ maintenance:update:htaccess
+    fi
+  become_user: "www-data"
+  register: set_domain
+  changed_when: "'RewriteBase' in set_domain.stdout"
 
 - name: Configure nextcloud to use redis and APCu
   shell: |
