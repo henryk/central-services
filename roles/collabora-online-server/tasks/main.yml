@@ -23,6 +23,23 @@
   notify:
     - restart loolwsd
 
+- name: Make sure sysconfig directory exists
+  file:
+    path: /etc/sysconfig
+    state: directory
+
+- name: Make Collabora work with special characters in URLs
+  lineinfile:
+    path: /etc/sysconfig/loolwsd
+    regexp: '^\s*#?\s*{{item.key}}\s*='
+    line: '{{item.key}}={{item.value}}'
+    state: present
+  with_dict:
+    LANG: "C.UTF-8"
+    LC_ALL: "C.UTF-8"
+  notify:
+    - restart loolwsd
+
 - name: Create key for self-signed certificate
   shell: |
     openssl genrsa -out /etc/loolwsd/key.pem 4096
