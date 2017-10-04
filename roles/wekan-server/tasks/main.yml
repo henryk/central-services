@@ -1,0 +1,8 @@
+- name: Make sure snapd is installed
+  apt:
+    state: present
+    name: snapd
+
+- name: Install the wekan snap
+  shell: snap install wekan
+  

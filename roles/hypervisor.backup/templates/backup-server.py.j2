@@ -1,0 +1,170 @@
+#!/usr/bin/env python
+
+BACKUP_PASSPHRASE={{backup_passphrase|to_json}}
+BACKUP_ARCHIVE={{ (backup_server_mount + "/" + backup_directory) | to_json  }}
+BACKUP_DOMAIN_XML = {{backup_domain_xml_directory|to_json}}
+BACKUP_PREFIX = {{ ("domain_" + inventory_hostname + "_") | to_json }}
+SNAPSHOT_SIZE = "1G"
+BORG_OPTIONS = ["--read-special", "-v", "--stats", "-C", "lz4"]
+
+import subprocess, os.path, json, traceback, sys, time
+
+class BackupOperation(object):
+	def __init__(self, domain):
+		self.domain = domain
+		self.is_live = True   # Sane default, will fail-safe if wrong
+		self.frozen = True
+		self.have_agent = True
+
+		self.snapshots = {}
+
+	def quiesce_fs_special(self):
+		## qemu-guest-agent is not smart enough to handle systems with bind mounts
+		##  http://qemu.11.n7.nabble.com/Issue-with-fsfreeze-with-qemu-agent-td408459.html
+		## Special workaround: Acquire list of file systems from agent, remove duplicates,
+		## then try to freeze only the unique ones
+
+		fsinfo = subprocess.check_output(["virsh", "qemu-agent-command", self.domain, '{"execute": "guest-get-fsinfo"}'])
+		fsinfo = json.loads(fsinfo)
+
+		mounts = {}
+
+		for fs in fsinfo["return"]:
+			## Assume that 'name' is unique per real filesystem, gather one 'mountpoint' per 'name'. Choose the shortest one.
+			if fs['name'] in mounts:
+				if len(fs['mountpoint']) >= mounts[ fs['name'] ]:
+					continue
+					
+			mounts[ fs['name'] ] = fs['mountpoint']
+
+		## Now try to quiesce those filesystems
+		result = subprocess.check_output(["virsh", "qemu-agent-command", self.domain, 
+			json.dumps({
+				"execute": "guest-fsfreeze-freeze-list", 
+				"arguments": {"mountpoints": mounts.values() }
+				})])
+		result = json.loads(result)
+
+		if result["return"] != len(mounts):
+			print >>sys.stderr, "Warning: Only %s of %s filesystems frozen" % (result["return"], len(mounts))
+		self.frozen = True
+
+
+	def quiesce_fs(self):
+		try:
+			# First, try to call the normal qemu-guest-agent method
+			subprocess.check_output(["virsh", "domfsfreeze", self.domain], stderr=subprocess.STDOUT)
+			self.frozen = True
+
+		except subprocess.CalledProcessError as e:
+			error_handled = False
+
+			if "Device or resource busy" in e.output:
+				try:
+					self.quiesce_fs_special()
+					error_handled = True
+				except:
+					traceback.print_exc()
+
+			if not error_handled:
+				raise
+
+
+
+	def do_backup(self):
+		# Warning: There's a race condition in is_live, but nothing much we can do about it
+		self.is_live = "running" in subprocess.check_output(["virsh", "domstate", self.domain])
+
+		## Get XML
+		domain_xml = subprocess.check_output(["virsh", "dumpxml", self.domain])
+		domain_xml_file = os.path.join(BACKUP_DOMAIN_XML, self.domain + ".xml")
+		
+		with file(domain_xml_file, "w") as fp:
+			fp.write(domain_xml)
+
+		## Begin critical section, freeze filesystems if necessary and possible
+		if self.is_live:
+			## Not a particularly good way to detect this ...
+			self.have_agent = "org.qemu.guest_agent.0" in domain_xml
+
+			if self.have_agent:
+				## FIXME Notify guest of backup
+
+				## Quiesce filesystems
+				self.quiesce_fs()
+
+		blkinfo = subprocess.check_output(["virsh", "domblklist", "--details", self.domain]).splitlines()[2:]
+		blkinfo = [e.split(None,3) for e in blkinfo if e.strip()]
+
+		now = time.strftime("%F_%T", time.gmtime()).replace(":","-")
+
+		## Create LVM snapshots, this ignores qcow volumes and will probably problematic on these machines
+		for blk in blkinfo:
+			if blk[0] == "block":
+				vol = blk[3]
+
+				if not vol in self.snapshots:
+					snapshot = vol + "_snapshot_" + now
+					subprocess.check_call(["lvcreate", "-q", "-s", vol, '-L', SNAPSHOT_SIZE, "-n", snapshot])
+					self.snapshots[vol] = snapshot
+
+
+		## End critical section, thaw filesystems again
+		if self.is_live:
+			if self.have_agent:
+				subprocess.check_call(["virsh", "domfsthaw", self.domain])
+				self.frozen = False
+
+
+		## Gather files to backup
+		files_to_backup = [domain_xml_file]
+		for blk in blkinfo:
+			if blk[1] == "disk":
+				files_to_backup.append( self.snapshots.get( blk[3], blk[3] ) )
+
+		files_to_backup = list(set(files_to_backup))
+
+		
+		## Execute backup
+		subprocess.check_call(["borg", "create"] + BORG_OPTIONS +
+			[BACKUP_ARCHIVE + "::" + BACKUP_PREFIX + self.domain + "_" + now] +
+			files_to_backup, env={"BORG_PASSPHRASE": BACKUP_PASSPHRASE})
+
+
+	def clean_backup(self):
+		## Make sure the agent unfreezes the disks
+		if self.is_live:
+			if self.have_agent:
+				if self.frozen:
+					subprocess.check_call(["virsh", "domfsthaw", self.domain])
+
+		## Make sure the snapshots are removed
+		any_error = False
+		for snapshot in self.snapshots.values():
+			try:
+				subprocess.check_call(["lvremove", "-q", "-y", snapshot])
+			except:
+				traceback.print_exc()
+				any_error = True
+		if any_error:
+			raise Exception("Error during snapshot removal")
+
+	def prune_backup(self):
+		subprocess.check_call(["borg", "prune", 
+			"--prefix", BACKUP_PREFIX + self.domain + "_", 
+			"--keep-daily=7", "--keep-weekly=4", "--keep-monthly=6", 
+			BACKUP_ARCHIVE ], env={"BORG_PASSPHRASE": BACKUP_PASSPHRASE})
+
+
+if __name__ == "__main__":
+	all_domains = [e for e in subprocess.check_output(["virsh", "list", "--all", "--name"]).splitlines() if e.strip()]
+	
+	for domain in all_domains:
+		backup = BackupOperation(domain)
+		try:
+			backup.do_backup()
+		finally:
+			backup.clean_backup()
+		backup.prune_backup()
+
+

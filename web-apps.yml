@@ -23,3 +23,8 @@
   hosts: collabora-online-server
   roles:
     - collabora-online-server
+
+- name: Install Wekan
+  hosts: wekan-server
+  roles:
+    - wekan-server

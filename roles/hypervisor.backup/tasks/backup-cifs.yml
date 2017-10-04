@@ -1,0 +1,36 @@
+---
+- name: Install required packages
+  apt:
+    state: present
+    name: "{{item}}"
+  with_items:
+    - cifs-utils
+
+- name: Store CIFS mount credentials
+  lineinfile:
+    path: "{{backup_credentials_file}}"
+    owner: root
+    group: root
+    mode: 0600
+    regexp: '^\s*#?\s*{{item.key}}\s*='
+    line: '{{item.key}}={{item.value}}'
+  with_dict:
+    username: "{{backup_user}}"
+    password: "{{backup_password}}"
+
+- name: Create mount directory
+  file:
+    path: "{{backup_server_mount}}"
+    state: directory
+
+- name: Configure mount point
+  mount:
+    state: mounted
+    fstype: cifs
+    src: "//{{backup_server}}/{{backup_server_share}}"
+    path: "{{backup_server_mount}}"
+    opts: "iocharset=utf8,rw,credentials={{backup_credentials_file}},uid=0,gid=0,file_mode=0660,dir_mode=0770"
+
+- name: Configure backup
+  include: backup-common.yml
+  static: no

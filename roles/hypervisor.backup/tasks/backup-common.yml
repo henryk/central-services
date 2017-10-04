@@ -1,0 +1,34 @@
+---
+- name: Install required packages
+  apt:
+    state: present
+    name: "{{item}}"
+  with_items:
+    - borgbackup
+
+- name: Initialize Borg directory
+  shell: |
+    export BORG_PASSPHRASE={{backup_passphrase}}
+    borg init {{backup_server_mount}}/{{backup_directory}}
+  args:
+    creates: "{{backup_server_mount}}/{{backup_directory}}/config"
+
+- name: Install Domain XML backup directory
+  file:
+    path: "{{backup_domain_xml_directory}}"
+    state: directory
+    mode: 0700
+
+- name: Install backup script
+  template:
+    dest: "/root/backup-server_{{inventory_hostname}}.py"
+    src: backup-server.py.j2
+    mode: u+x,go=
+
+- name: Install cron job
+  cron:
+    state: present
+    hour: 5
+    minute: 23
+    name: "Backup of virtual machines on {{inventory_hostname}}"
+    job: "/root/backup-server_{{inventory_hostname}}.py"

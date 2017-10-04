@@ -4,4 +4,6 @@
   roles:
     - upgrade-reboot
     - hypervisor
+    - hypervisor.backup
+
 

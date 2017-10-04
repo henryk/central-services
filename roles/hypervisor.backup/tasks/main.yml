@@ -1,0 +1,5 @@
+---
+- name: Configure Borg Backup on CIFS
+  include: backup-cifs.yml
+  static: no
+  when: backup_server_type == 'cifs'

@@ -1,0 +1,8 @@
+backup_passphrase_length: "30"
+backup_passphrase: "{{ lookup('passwordstore', pass_prefix + pass_name + '/_backup/passphrase create=true length=' + backup_passphrase_length ) }}"
+backup_server_mount: /media/backup-server
+backup_credentials_file: /etc/backup-credentials
+backup_domain_xml_directory: "/etc/backup-domain-xml_{{inventory_hostname}}"
+backup_directory: "backup_{{inventory_hostname}}"
+
+backup_server_type: null
