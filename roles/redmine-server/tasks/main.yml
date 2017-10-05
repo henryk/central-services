@@ -1,0 +1,112 @@
+---
+- name: Install prerequisites
+  apt: state=present name={{item}}
+  with_items:
+    - ruby
+    - gem
+    - ruby-zip
+    - rails
+    - build-essential
+    - ruby-dev
+    - libmysqlclient-dev
+    - libmagickwand-dev
+    - imagemagick
+    - zlib1g
+    - zlib1g-dev
+    - libxml2
+    - libxslt1-dev
+    - libssl-dev
+    - libyaml-dev
+    - libcurl4-openssl-dev
+    - libapache2-mod-passenger
+    - apache2
+    - acl  ## HACK HACK HACK
+
+- name: Create a dedicated redmine user
+  user:
+    name: "{{redmine_user}}"
+    home: "{{redmine_directory_base}}"
+    state: present
+
+- name: Remount /tmp with acl support (HACK HACK HACK)
+  command: mount / -o remount,acl
+  changed_when: false
+  args:
+    warn: false
+
+- name: Create redmine directory
+  file:
+    path: "{{item}}"
+    state: directory
+    owner: "{{redmine_user}}"
+    group: "{{redmine_user}}"
+  with_items:
+    - "{{redmine_directory_base}}"
+    - "{{redmine_directory}}"
+
+- name: Check for initial installation
+  stat:
+    path: '{{redmine_directory_current}}'
+  register: redmine_current
+
+- name: Perform initial installation
+  include: initial-install.yml
+  static: no
+  when: redmine_force_initial_install or not redmine_current.stat.exists
+
+- name: Install redmine Apache configuration
+  copy:
+    content: |
+      <VirtualHost *:80>
+
+        DocumentRoot {{redmine_directory_current}}/public
+
+        <Location />
+          RailsEnv production
+          RackBaseURI /
+          Options -MultiViews
+          Require all granted
+        </Location>
+
+      </VirtualHost>
+    dest: /etc/apache2/sites-available/redmine.conf
+  notify:
+    - restart apache2
+
+- name: Activate passenger apache module
+  apache2_module:
+    name: passenger
+    state: present
+  notify:
+    - restart apache2
+
+- name: Configure passenger for redmine user 1/2
+  copy:
+    content: |
+      <IfModule mod_passenger.c>
+        PassengerUser {{redmine_user}}
+      </IfModule>
+    dest: /etc/apache2/conf-available/passenger-user-redmine.conf
+
+- name: Configure passenger for redmine user 2/2
+  file:
+    dest: /etc/apache2/conf-enabled/passenger-user-redmine.conf
+    src: /etc/apache2/conf-available/passenger-user-redmine.conf
+    state: link
+  notify:
+    - restart apache2
+
+- name: Disable default Apache configuration
+  file:
+    dest: /etc/apache2/sites-enabled/000-default.conf
+    state: absent
+  notify:
+    - restart apache2
+
+- name: Activate redmine Apache configuration
+  file:
+    dest: /etc/apache2/sites-enabled/redmine.conf
+    src: /etc/apache2/sites-available/redmine.conf
+    state: link
+  notify:
+    - restart apache2

@@ -28,3 +28,8 @@
   hosts: wekan-server
   roles:
     - wekan-server
+
+- name: Install Redmine
+  hosts: redmine-server
+  roles:
+    - redmine-server

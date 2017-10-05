@@ -1,0 +1,15 @@
+redmine_version: '3.4.2'
+redmine_md5: '2980b80e9acc81c01c06adb86eb4f37d'
+redmine_user: 'redmine'
+redmine_directory_base: /opt/redmine
+redmine_directory_current: "{{redmine_directory_base}}/redmine-current"
+redmine_directory: "{{redmine_directory_base}}/redmine-{{redmine_version}}"
+
+redmine_mysql_user: redmine
+redmine_mysql_password: "{{ lookup('passwordstore', pass_prefix + pass_name + '/mysql/' + redmine_mysql_user + ' create=true length=' + pass_generate_length ) }}"
+redmine_mysql_database: redmine
+
+redmine_admin_user: admin
+redmine_admin_password: "{{ lookup('passwordstore', pass_prefix + pass_name + '/redmine/' + redmine_admin_user + ' create=true length=' + pass_generate_length ) }}"
+
+redmine_force_initial_install: False

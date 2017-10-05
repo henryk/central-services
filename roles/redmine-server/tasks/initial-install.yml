@@ -1,0 +1,115 @@
+---
+- name: Set up DB
+  include_role:
+    name: mysql-server
+    tasks_from: setup-db
+    allow_duplicates: true
+  vars:
+    mysql_setup_db_user: "{{redmine_mysql_user}}"
+    mysql_setup_db_password: "{{redmine_mysql_password}}"
+    mysql_setup_db_database: "{{redmine_mysql_database}}"
+
+- name: Download redmine
+  get_url: 
+    dest: '{{redmine_directory}}/redmine.tar.gz'
+    url: 'http://www.redmine.org/releases/redmine-{{redmine_version}}.tar.gz'
+    checksum: 'md5:{{redmine_md5}}'
+
+- name: Unpack redmine
+  unarchive:
+    dest: '{{redmine_directory}}'
+    src: '{{redmine_directory}}/redmine.tar.gz'
+    remote_src: true
+    extra_opts:
+      - '--strip-components=1'
+      - '--no-same-owner'
+
+- name: Remove downloaded tarball
+  file:
+    path: '{{redmine_directory}}/redmine.tar.gz'
+    state: absent
+
+- name: Install bundler
+  gem:
+    name: bundler
+    state: present
+
+- name: Create directories and set permissions
+  file:
+    path: "{{redmine_directory}}/{{item}}"
+    owner: "{{redmine_user}}"
+    group: "{{redmine_user}}"
+    state: directory
+  with_items:
+    - files
+    - log
+    - tmp
+    - tmp/pdf
+    - tmp/cache
+    - public/plugin_assets
+    - vendor
+
+- name: Install database configuration
+  copy:
+    content: |
+      production:
+        adapter: mysql2
+        database: {{redmine_mysql_database}}
+        host: localhost
+        username: {{redmine_mysql_user}}
+        password: {{redmine_mysql_password}}
+    owner: "{{redmine_user}}"
+    group: "{{redmine_user}}"
+    mode: go=
+    dest: "{{redmine_directory}}/config/database.yml"
+
+- name: Install bundle
+  shell: |
+    bundle install --path vendor/bundle --without development test
+  args:
+    chdir: "{{redmine_directory}}"
+  become_user: "{{redmine_user}}"
+
+- name: Create secret file with correct user
+  file:
+    path: "{{redmine_directory}}/{{item}}"
+    owner: "{{redmine_user}}"
+    group: "{{redmine_user}}"
+    state: touch
+  with_items:
+    - config/initializers/secret_token.rb
+    - db/schema.rb
+
+- name: Generate session secrets
+  shell: |
+    bundle exec rake -B generate_secret_token
+    chmod o= config/initializers/secret_token.rb
+  args:
+    chdir: "{{redmine_directory}}"
+  environment:
+    RAILS_ENV: production
+  become_user: "{{redmine_user}}"
+
+- name: Create database structure
+  shell: |
+    bundle exec rake db:migrate
+  args:
+    chdir: "{{redmine_directory}}"
+  environment:
+    RAILS_ENV: production
+  become_user: "{{redmine_user}}"
+
+- name: Set admin user name and password
+  command: 'mysql -u {{redmine_mysql_user|quote}} -p{{redmine_mysql_password|quote}} {{redmine_mysql_database|quote}} -ne {{ sql |quote}}'
+  vars:
+    sql: |
+      UPDATE users SET login='{{redmine_admin_user}}', hashed_password=SHA1( CONCAT( salt, '{{redmine_admin_password | hash('sha1') }}' ) ), must_change_passwd=0 WHERE id=1 AND admin=1 AND must_change_passwd=1;
+  register:
+    redmine_set_admin_password
+  changed_when: '"Changed: 1" in redmine_set_admin_password.stdout'
+
+- name: Set redmine installation as active
+  file:
+    path: "{{redmine_directory_current}}"
+    src: "{{redmine_directory}}"
+    state: link
