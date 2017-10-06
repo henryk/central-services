@@ -1,0 +1,143 @@
+---
+- name: Install prerequisites
+  apt: state=present name={{item}}
+  with_items:
+    - python-apt
+    - apt-transport-https
+    - git
+    - apache2
+    - libcurl4-gnutls-dev
+    - apache2-dev
+    - libapr1-dev
+    - libaprutil1-dev
+    - libapache2-mod-passenger
+    - memcached
+    - acl  ## HACK HACK HACK
+
+- name: Remount /tmp with acl support (HACK HACK HACK)
+  command: mount / -o remount,acl
+  changed_when: false
+  args:
+    warn: false
+
+- name: Install openproject Packager key
+  apt_key: # https://dl.packager.io/srv/opf/openproject-ce/key
+    state: "present"
+    data: |
+      -----BEGIN PGP PUBLIC KEY BLOCK-----
+      Version: GnuPG v1
+
+      mQENBFEo1AcBCADA7ufM3DrjWvcZ3ShTayCOMPeoLlRHaUpMM/+7ZM6C/lA3xdIZ
+      PEE8SKd+8uhO+fv+UfQcUhBr8wd2QVSFqT6+2kV/comjLKqim/7GaskudRjqVfTA
+      AzwPBAE4otJnnsbU+t1veo+rMLNsPyq8UG9sNhO3Jm49zLaVtIFOEAOJ3NI33Tse
+      i64ybxOe4Qnby7VRVs94kngdwE2giO+U7nnupfeQGZfN26OibPiglwCvBsdt70he
+      qKrMrs2VUydH/OwMbWMFEn+ehA2Z8IWHFcyv5a+V/DWhX41MEYBclAAPbzez+TPu
+      PNtMNWfHUFTXafdO6P64Kki00SWqgJXLpwurABEBAAG0KnBrZ3IuaW8gKGh0dHA6
+      Ly9wa2dyLmlvKSA8c3VwcG9ydEBwa2dyLmlvPokBOAQTAQIAIgUCUSjUBwIbAwYL
+      CQgHAwIGFQgCCQoLBBYCAwECHgECF4AACgkQttWDzL0z7rjlGAgAsnLvoxeb7U71
+      0/8P3Ik/YNkjCrXVTI4ZF+gEkKKLoObO2QfP+VkujrbarYUPhMvLPYmBI0zkge6O
+      KHr+vIhVHj5u6SsuGWRNUUFigKFt8nQDVU4ts/IYyyrvc2pftJrLDeBiN53H0lwI
+      y0ANxLz/1XSFCug6RQTewa8aCZi2Ek51YuPL8btIhLXcmqe+oOYhRIbZNeMoQfyn
+      yeek2tUq4Mlp9XOn0o9w+N7E0FlZhVRJ4cWtzKKdmuEVtIIdzWcu6vGFCmXhrjoG
+      eGpIdTYmXUYbV6bZ6nYZmresKcPOYjNKn97fTrGHV0rfBgEf8Nv9H7BP1cPbtXUq
+      zcyU6/9QrA==
+      =/EuB
+      -----END PGP PUBLIC KEY BLOCK-----
+
+- name: Add repository
+  apt_repository:
+    state: present
+    repo: "deb https://dl.packager.io/srv/deb/opf/openproject-ce/stable/7/ubuntu 16.04 main"
+
+- name: Install openproject
+  apt:
+    update_cache: true
+    name: openproject
+    state: present
+
+- name: Set up DB
+  include_role:
+    name: mysql-server
+    tasks_from: setup-db
+    allow_duplicates: true
+  vars:
+    mysql_setup_db_user: "{{openproject_mysql_user}}"
+    mysql_setup_db_password: "{{openproject_mysql_password}}"
+    mysql_setup_db_database: "{{openproject_mysql_database}}"
+
+- name: Basic OpenProject configuration
+  shell: |
+    openproject config:set {{ ( 'DATABASE_URL=mysql2://' + openproject_mysql_user + ':' + openproject_mysql_password + '@localhost/' + openproject_mysql_database ) | quote }}
+    openproject run rake db:migrate
+    openproject run rake db:seed
+    openproject run rake assets:precompile
+  environment:
+    RAILS_ENV: production
+    LOCALE: '{{openproject_language}}'
+  become_user: "openproject"
+
+- name: Install openproject Apache configuration
+  copy:
+    content: |
+      SetEnv EXECJS_RUNTIME Disabled
+
+      <VirtualHost *:80>
+
+        DocumentRoot /opt/openproject/public
+
+        <Location />
+          RailsEnv production
+          RackBaseURI /
+          Options -MultiViews
+          Require all granted
+        </Location>
+
+         <Location /assets/>
+          ExpiresActive On ExpiresDefault "access plus 1 year"
+        </Location>
+
+      </VirtualHost>
+    dest: /etc/apache2/sites-available/openproject.conf
+  notify:
+    - restart apache2
+
+- name: Activate apache modules
+  apache2_module:
+    name: "{{item }}"
+    state: present
+  with_items:
+    - passenger
+    - expires
+  notify:
+    - restart apache2
+
+- name: Configure passenger for openproject user 1/2
+  copy:
+    content: |
+      <IfModule mod_passenger.c>
+        PassengerUser openproject
+      </IfModule>
+    dest: /etc/apache2/conf-available/passenger-openproject.conf
+
+- name: Configure passenger for openproject user 2/2
+  file:
+    dest: /etc/apache2/conf-enabled/passenger-openproject.conf
+    src: /etc/apache2/conf-available/passenger-openproject.conf
+    state: link
+  notify:
+    - restart apache2
+
+- name: Disable default Apache configuration
+  file:
+    dest: /etc/apache2/sites-enabled/000-default.conf
+    state: absent
+  notify:
+    - restart apache2
+
+- name: Activate openproject Apache configuration
+  file:
+    dest: /etc/apache2/sites-enabled/openproject.conf
+    src: /etc/apache2/sites-available/openproject.conf
+    state: link
+  notify:
+    - restart apache2

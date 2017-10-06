@@ -33,3 +33,8 @@
   hosts: redmine-server
   roles:
     - redmine-server
+
+- name: Install OpenProject
+  hosts: openproject-server
+  roles:
+    - openproject-server

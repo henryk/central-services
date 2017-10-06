@@ -1,0 +1,5 @@
+openproject_mysql_user: openproject
+openproject_mysql_password: "{{ lookup('passwordstore', pass_prefix + pass_name + '/mysql/' + openproject_mysql_user + ' create=true length=' + pass_generate_length ) }}"
+openproject_mysql_database: openproject
+
+openproject_language: en
