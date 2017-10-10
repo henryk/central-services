@@ -4,5 +4,11 @@ backup_server_mount: /media/backup-server
 backup_credentials_file: /etc/backup-credentials
 backup_domain_xml_directory: "/etc/backup-domain-xml_{{inventory_hostname}}"
 backup_directory: "backup_{{inventory_hostname}}"
+backup_keep: {}
 
 backup_server_type: null
+
+backup_keep_default:
+  daily: 7
+  weekly: 4
+  monthly: 6

@@ -6,6 +6,10 @@ BACKUP_DOMAIN_XML = {{backup_domain_xml_directory|to_json}}
 BACKUP_PREFIX = {{ ("domain_" + inventory_hostname + "_") | to_json }}
 SNAPSHOT_SIZE = "1G"
 BORG_OPTIONS = ["--read-special", "-v", "--stats", "-C", "lz4"]
+{% set keep = backup_keep|default_hash(backup_keep_default) -%}
+BORG_KEEP = { {%- for k in keep -%}
+	"{{k}}": "{{ keep[k] }}", {{ " " }}
+{%- endfor -%} }
 
 import subprocess, os.path, json, traceback, sys, time, os
 
@@ -157,9 +161,9 @@ class BackupOperation(object):
 
 	def prune_backup(self):
 		subprocess.check_call(["borg", "prune", 
-			"--prefix", BACKUP_PREFIX + self.domain + "_", 
-			"--keep-daily=7", "--keep-weekly=4", "--keep-monthly=6", 
-			BACKUP_ARCHIVE ], env={"BORG_PASSPHRASE": BACKUP_PASSPHRASE})
+			"--prefix", BACKUP_PREFIX + self.domain + "_"] +
+			[ "--keep-%s=%s" % (k,v) for (k,v) in BORG_KEEP.items() ] +
+			[ BACKUP_ARCHIVE ], env={"BORG_PASSPHRASE": BACKUP_PASSPHRASE})
 
 
 if __name__ == "__main__":
