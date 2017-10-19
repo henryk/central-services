@@ -1,0 +1,14 @@
+wallabag_mysql_user: wallabag
+wallabag_mysql_password: "{{ lookup('passwordstore', pass_prefix + pass_name + '/mysql/' + wallabag_mysql_user + ' create=true length=' + pass_generate_length ) }}"
+wallabag_mysql_database: wallabag
+
+wallabag_user: wallabag
+
+wallabag_admin_user: admin
+wallabag_admin_password: "{{ lookup('passwordstore', pass_prefix + pass_name + '/wallabag/' + wallabag_admin_user + ' create=true length=' + pass_generate_length ) }}"
+wallabag_admin_email: root@localhost
+
+wallabag_installation_path: /var/www/wallabag
+wallabag_version: "2.2.3"
+
+wallabag_installation_path_safe: "{{wallabag_installation_path|regex_replace('_','__')|regex_replace('/','_')}}"

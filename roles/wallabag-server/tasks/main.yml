@@ -1,0 +1,180 @@
+- name: Install base packages
+  apt: state=present name={{item}}
+  with_items:
+    - apache2
+    - php
+    - libapache2-mod-php7.0
+    - git
+    - php7.0-bcmath
+    - php7.0-xml
+    - php7.0-zip
+    - php7.0-curl
+    - php7.0-mbstring
+    - php7.0-gd
+    - php7.0-mysql
+    - composer
+    - acl  ## See HACK HACK HACK in initial-install
+  notify:
+    - restart apache2
+
+- name: Remount /tmp with acl support (HACK HACK HACK)
+  command: mount / -o remount,acl
+  changed_when: false
+  args:
+    warn: false
+
+- name: Create a dedicated wallabag user
+  user:
+    name: "{{wallabag_user}}"
+    home: "{{wallabag_installation_path}}"
+    state: present
+    createhome: no
+
+- name: Create wallabag directory
+  file:
+    dest: '{{wallabag_installation_path}}'
+    state: directory
+    owner: "{{wallabag_user}}"
+
+- name: Set up DB
+  include_role:
+    name: mysql-server
+    tasks_from: setup-db
+    allow_duplicates: true
+  vars:
+    mysql_setup_db_user: "{{wallabag_mysql_user}}"
+    mysql_setup_db_password: "{{wallabag_mysql_password}}"
+    mysql_setup_db_database: "{{wallabag_mysql_database}}"
+
+- name: Activate mod_rewrite and others
+  apache2_module:
+    name: "{{item}}"
+    state: present
+  with_items:
+    - rewrite
+    - headers
+  notify:
+    - restart apache2
+
+# - name: Check for initial installation
+#   stat:
+#     path: '{{wallabag_installation_path}}/.git'
+#   register: wallabag_git
+
+# - name: Run initial installation
+#   include: tasks/initial-install.yml
+#   static: no
+#   when: true or (not wallabag_git.stat.exists)
+
+
+- name: Download wallabag
+  git:
+    clone: yes
+    dest: "{{wallabag_installation_path}}"
+    repo: https://github.com/wallabag/wallabag.git
+    update: yes
+    version: "{{wallabag_version}}"
+  become_user: "{{wallabag_user}}"
+
+- name: Install wallabag dependencies
+  composer:
+    command: install
+    prefer_dist: true
+    working_dir: "{{wallabag_installation_path}}"
+  environment:
+    SYMFONY_ENV: prod
+  become_user: "{{wallabag_user}}"
+
+- name: Configure wallabag
+  lineinfile:
+    dest: "{{wallabag_installation_path}}/app/config/parameters.yml"
+    regexp: "^\\s*(?:#\\s*)?\\s*{{item.key}}\\s*:"
+    line: "    {{item.key}}: {{item.value}}"
+  with_dict:
+    database_driver: pdo_mysql
+    database_name: "{{wallabag_mysql_database}}"
+    database_user: "{{wallabag_mysql_user}}"
+    database_password: "{{wallabag_mysql_password}}"
+    fosuser_registration: false
+
+- name: Run wallabag initial installation
+  shell: |
+    cd {{wallabag_installation_path|quote}}
+    php bin/console --env=prod -n wallabag:install
+    php bin/console --env=prod -n cache:clear
+    php bin/console --env=prod -n fos:user:deactivate wallabag
+    php bin/console --env=prod -n fos:user:create --super-admin {{wallabag_admin_user|quote}} {{wallabag_admin_email|quote}} {{wallabag_admin_password|quote}} || true
+  become_user: "{{wallabag_user}}"
+
+- name: Set folder permissions
+  file:
+    state: directory
+    group: "{{wallabag_user}}"
+    owner: www-data
+    dest: '{{wallabag_installation_path}}/{{item}}'
+    mode: ug+rwX,o=
+    recurse: yes
+  with_items:
+    - web
+    - var
+    - bin
+    - app/config
+    - vendor
+    - data
+
+- name: Install wallabag Apache configuration
+  copy:
+    content: |
+      <VirtualHost *:80>
+          DocumentRoot {{wallabag_installation_path}}/web
+          <Directory {{wallabag_installation_path}}/web>
+              AllowOverride None
+              Order Allow,Deny
+              Allow from All
+
+              <IfModule mod_rewrite.c>
+                  Options -MultiViews
+                  RewriteEngine On
+                  RewriteCond %{REQUEST_FILENAME} !-f
+                  RewriteRule ^(.*)$ app.php [QSA,L]
+              </IfModule>
+              <IfModule mod_headers.c>
+                  Header set Content-Security-Policy "upgrade-insecure-requests; img-src https:"
+              </IfModule>
+          </Directory>
+
+          # uncomment the following lines if you install assets as symlinks
+          # or run into problems when compiling LESS/Sass/CoffeScript assets
+          # <Directory {{wallabag_installation_path}}>
+          #     Options FollowSymlinks
+          # </Directory>
+
+          # optionally disable the RewriteEngine for the asset directories
+          # which will allow apache to simply reply with a 404 when files are
+          # not found instead of passing the request into the full symfony stack
+          <Directory {{wallabag_installation_path}}/web/bundles>
+              <IfModule mod_rewrite.c>
+                  RewriteEngine Off
+              </IfModule>
+          </Directory>
+          ErrorLog /var/log/apache2/wallabag_error.log
+          CustomLog /var/log/apache2/wallabag_access.log combined
+      </VirtualHost>
+    dest: /etc/apache2/sites-available/wallabag.conf
+  notify:
+    - restart apache2
+
+- name: Disable default Apache configuration
+  file:
+    dest: /etc/apache2/sites-enabled/000-default.conf
+    state: absent
+  notify:
+    - restart apache2
+
+- name: Activate wallabag Apache configuration
+  file:
+    dest: /etc/apache2/sites-enabled/wallabag.conf
+    src: /etc/apache2/sites-available/wallabag.conf
+    state: link
+  notify:
+    - restart apache2

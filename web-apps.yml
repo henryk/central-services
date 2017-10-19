@@ -38,3 +38,8 @@
   hosts: openproject-server
   roles:
     - openproject-server
+
+- name: Install wallabag
+  hosts: wallabag-server
+  roles:
+    - wallabag-server
