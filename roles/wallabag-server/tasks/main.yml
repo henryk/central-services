@@ -45,6 +45,8 @@
     mysql_setup_db_user: "{{wallabag_mysql_user}}"
     mysql_setup_db_password: "{{wallabag_mysql_password}}"
     mysql_setup_db_database: "{{wallabag_mysql_database}}"
+    mysql_setup_db_encoding: "utf8mb4"
+    mysql_setup_db_collation: "utf8mb4_general_ci"
 
 - name: Activate mod_rewrite and others
   apache2_module:
@@ -76,6 +78,22 @@
     version: "{{wallabag_version}}"
   become_user: "{{wallabag_user}}"
 
+- name: Set folder permissions
+  file:
+    state: directory
+    group: "{{wallabag_user}}"
+    owner: www-data
+    dest: '{{wallabag_installation_path}}/{{item}}'
+    mode: ug+rwX,o=
+    recurse: yes
+  with_items:
+    - web
+    - var
+    - bin
+    - app/config
+    - vendor
+    - data
+
 - name: Install wallabag dependencies
   composer:
     command: install
@@ -106,7 +124,7 @@
     php bin/console --env=prod -n fos:user:create --super-admin {{wallabag_admin_user|quote}} {{wallabag_admin_email|quote}} {{wallabag_admin_password|quote}} || true
   become_user: "{{wallabag_user}}"
 
-- name: Set folder permissions
+- name: Set folder permissions (again)
   file:
     state: directory
     group: "{{wallabag_user}}"
