@@ -47,7 +47,9 @@ class DynamicInventory(object):
 				update_merged(values, k, v)
 			hypervisors[hypervisor] = values
 
-		groups = {}
+		groups = { "hypervisors":
+			hypervisors.keys()
+		}
 		domains = {}
 
 		for hypervisor, config in hypervisors.items():

@@ -33,24 +33,22 @@
     autostart: yes
     state: active
 
-- include: tasks/fix-libguestfs.yml
+- import_tasks: tasks/fix-libguestfs.yml
 
-- include: tasks/list.yml
+- include_tasks: tasks/list.yml
 
 - name: Delete domains that are obsolete
-  include: tasks/delete_domain.yml
-  static: no
+  include_tasks: tasks/delete_domain.yml
   with_items: "{{ libvirt_domains_deleted }}"
   loop_control:
     loop_var: libvirt_domain_delete
   when: libvirt_domain_delete in libvirt_all_domains or override_force_delete
 
-- include: tasks/list.yml
+- include_tasks: tasks/list.yml
   when: override_force_delete or libvirt_all_domains | intersect(libvirt_domains_deleted)
 
 - name: Setup domains that are missing
-  include: tasks/setup_domain.yml libvirt_domain={{libvirt_domain_defaults|combine(domain_definition)}}
-  static: no
+  include_tasks: tasks/setup_domain.yml libvirt_domain={{libvirt_domain_defaults|combine(domain_definition)}}
   with_items: "{{ libvirt_domains }}"
   loop_control:
     loop_var: domain_definition
