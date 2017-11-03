@@ -1,5 +1,6 @@
 ---
 - hosts: all:!hypervisors
   name: Install upgrades everywhere and reboot
+  serial: 8
   roles:
     - upgrade-reboot
