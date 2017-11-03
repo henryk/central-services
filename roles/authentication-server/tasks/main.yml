@@ -7,6 +7,7 @@
     - slapd
     - ldap-utils
     - debconf-utils
+    - python-ldap
 
 - name: Check for initial configuration
   stat:
@@ -15,6 +16,74 @@
 
 - name: Perform initial configuration
   include_tasks: "tasks/initial-install.yml"
-  when: ldap_reinitialize or ldap_exists.stat.exists
+  when: ldap_reinitialize or not ldap_exists.stat.exists
 
+- name: Create hierarchies
+  ldap_entry:
+    bind_dn: "{{ldap_root_dn}}"
+    bind_pw: "{{ldap_root_password}}"
+    dn: ou={{item}},{{ ldap_domain | hostname_to_dn}}
+    objectClass:
+      - organizationalUnit
+      - top
+    attributes:
+      ou: "{{item}}"
+  with_items:
+    - "{{ldap_users_ou}}"
+    - "{{ldap_groups_ou}}"
+    - "{{ldap_services_ou}}"
+    - "{{ldap_mailing_lists_ou}}"
 
+- name: Create privileged groups
+  ldap_entry:
+    bind_dn: "{{ldap_root_dn}}"
+    bind_pw: "{{ldap_root_password}}"
+    dn: cn={{item}},ou={{ldap_groups_ou}},{{ ldap_domain | hostname_to_dn}}
+    objectClass:
+      - groupOfNames
+      - top
+    attributes:
+      cn: "{{item}}"
+      member: "{{ldap_dummy_dn}}"
+  with_items: "{{ldap_full_access_groups}}"
+
+- name: Set ACL
+  ldap_attr:
+    dn: "olcDatabase={1}mdb,cn=config"
+    name: olcAccess
+    state: exact
+    values: ## FIXME uid=dovecot hardcoded
+      - >-
+        {0}to attrs=userPassword
+        by self write
+        by anonymous auth
+        {% for g in ldap_full_access_groups %} by group.exact="cn={{g}},ou={{ldap_groups_ou}},{{ ldap_domain | hostname_to_dn}}" write {% endfor %}
+        by dn.exact="uid=dovecot,ou={{ldap_services_ou}},{{ ldap_domain | hostname_to_dn}}" read
+        by * none
+      - >-
+        {1}to attrs=shadowLastChange
+        by self write
+        {% for g in ldap_full_access_groups %} by group.exact="cn={{g}},ou={{ldap_groups_ou}},{{ ldap_domain | hostname_to_dn}}" write {% endfor %}
+        by dn.children="ou={{ldap_services_ou}},{{ ldap_domain | hostname_to_dn}}" read
+        by * none
+      - >-
+        {2}to dn.children="ou={{ldap_users_ou}},{{ ldap_domain | hostname_to_dn}}" attrs=cn,sn,givenName
+        by self write
+        {% for g in ldap_full_access_groups %} by group.exact="cn={{g}},ou={{ldap_groups_ou}},{{ ldap_domain | hostname_to_dn}}" write {% endfor %}
+        by dn.children="ou={{ldap_services_ou}},{{ ldap_domain | hostname_to_dn}}" read
+      - >-
+        {3}to dn.base=""
+        by * read
+      - >-
+        {4}to dn.subtree="ou={{ldap_mailing_lists_ou}},{{ ldap_domain | hostname_to_dn}}"
+        {% for g in ldap_full_access_groups %} by group.exact="cn={{g}},ou={{ldap_groups_ou}},{{ ldap_domain | hostname_to_dn}}" write {% endfor %}
+        by dn.children="ou={{ldap_services_ou}},{{ ldap_domain | hostname_to_dn}}" write
+      - >-
+        {5}to dn.exact="ou={{ldap_users_ou}},{{ ldap_domain | hostname_to_dn}}" attrs=entry
+        {% for g in ldap_full_access_groups %} by group.exact="cn={{g}},ou={{ldap_groups_ou}},{{ ldap_domain | hostname_to_dn}}" write {% endfor %}
+        by users search
+      - >-
+        {6}to *
+        {% for g in ldap_full_access_groups %} by group.exact="cn={{g}},ou={{ldap_groups_ou}},{{ ldap_domain | hostname_to_dn}}" write {% endfor %}
+        by dn.children="ou={{ldap_services_ou}},{{ ldap_domain | hostname_to_dn}}" read
+        by self read

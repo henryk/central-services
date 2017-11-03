@@ -35,12 +35,51 @@
     regexp: '^\s*#?\s*BASE\s+'
     line: "BASE {{ldap_domain|hostname_to_dn}}"
 
-- name: Install module configuration
+- name: Configure LDAP for secure passwords
+  ldap_attr:
+    dn: "{{item.dn}}"
+    name: "{{item.name}}"
+    values: "{{item.val}}"
+    state: exact
+  with_items:
+    - { dn: "cn=config",
+        name: "olcPasswordCryptSaltFormat",
+        val: "$6$rounds=50002$%.16s" }
+    - { dn: "olcDatabase={-1}frontend,cn=config",
+        name: "olcPasswordHash",
+        val: "{CRYPT}" }
+    - { dn: "olcDatabase={1}mdb,cn=config",
+        name: "olcRootPW",
+        val: "{CRYPT}{{ ldap_root_password | password_hash('sha512')}}" }
+
+- name: Re-set LDAP admin password
+  ldap_attr:
+    bind_dn: "{{ldap_root_dn}}"
+    bind_pw: "{{ldap_root_password}}"
+    dn: "{{ldap_root_dn}}"
+    name: userPassword
+    state: exact
+    values: "{CRYPT}{{ ldap_root_password | password_hash('sha512')}}"
+
+- name: Create dummy user
+  ldap_entry:
+    bind_dn: "{{ldap_root_dn}}"
+    bind_pw: "{{ldap_root_password}}"
+    dn: "{{ldap_dummy_dn}}"
+    objectClass:
+      - inetOrgPerson
+      - top
+    attributes:
+      cn: "{{ldap_dummy_cn}}"
+      sn: Dummy
+      description: Non-existent user
+
+- name: Load modules
   shell: "ldapadd -Y EXTERNAL -H ldapi:/// <<<{{item|quote}}"
   args:
     executable: /bin/bash
   with_items:
-    # Load modules: dynlist, memberof, refint
+    # Load modules: dynlist, memberof, refint (this needs ldapadd for automatic numbering)
     - |-
       dn: cn=module,cn=config
       objectClass: olcModuleList
@@ -56,59 +95,93 @@
       objectClass: olcModuleList
       cn: module
       olcModuleLoad: refint
-    # Configure memberof and refint modules as overlays
-    - |-
-      dn: olcOverlay={0}memberof,olcDatabase={1}mdb,cn=config
-      objectClass: olcConfig
-      objectClass: olcMemberOf
-      objectClass: olcOverlayConfig
-      objectClass: top
-      olcOverlay: memberof
-      olcMemberOfDangling: ignore
-      olcMemberOfRefInt: TRUE
-      olcMemberOfGroupOC: groupOfNames
-      olcMemberOfMemberAD: member
-      olcMemberOfMemberOfAD: memberOf
-    - |-
-      dn: olcOverlay={1}refint,olcDatabase={1}mdb,cn=config
-      objectClass: olcConfig
-      objectClass: olcOverlayConfig
-      objectClass: olcRefintConfig
-      objectClass: top
-      olcOverlay: {1}refint
-      olcRefintAttribute: memberof member manager owner
 
-- name: Configure LDAP for secure passwords
-  shell: "ldapmodify -Y EXTERNAL -H ldapi:/// <<<{{item|quote}}"
-  args:
-    executable: /bin/bash
+- name: Configure schemas and modules
+  ldap_entry:
+    dn: "{{item.dn}}"
+    objectClass: "{{item.objectClass}}"
+    attributes: "{{item.attributes}}"
   with_items:
-    # Change {CRYPT} salt format to something more secure than {SSHA}
-    - |-
-      dn: cn=config
-      changetype: modify
-      add: olcPasswordCryptSaltFormat
-      olcPasswordCryptSaltFormat: $6$rounds=50002$%.16s
-    # Switch password hashes to {CRYPT}
-    - |-
-      dn: olcDatabase={-1}frontend,cn=config
-      changetype: modify
-      add: olcPasswordHash
-      olcPasswordHash: {CRYPT}
-    # Re-set root password with the stronger hash
-    - |-
-      dn: olcDatabase={1}mdb,cn=config
-      changetype: modify
-      replace: olcRootPW
-      olcRootPW: {CRYPT}{{ ldap_root_password | password_hash('sha512')}}
+    # Add custom object classes, originally developed for Christophorus Club
+    - dn: cn=CC-dyngroup,cn=schema,cn=config
+      objectClass:
+        - olcSchemaConfig
+        - olcConfig
+        - top
+      attributes:
+        cn: CC-dyngroup
+        olcObjectIdentifier:
+          - "{0}CC-Base 1.3.6.1.4.1.46840"
+          - "{1}CC-DynGroupBase CC-Base:1.1"
+        olcAttributeTypes: |-
+          {0}( CC-DynGroupBase:2 NAME 'CC-memberURL' DESC 'Identifies an URL associated with each member of a dynamic group.' SUP labeledURI )
+        olcObjectClasses: |-
+          {0}( CC-DynGroupBase:1 NAME 'CC-dynamicGroup' SUP top STRUCTURAL MAY ( cn $ CC-memberURL ) )
 
-- name: Re-set LDAP admin password
-  shell: "ldapmodify -H ldap://127.0.0.1 -D {{ ldap_root_dn | quote}} -w {{ ldap_root_password|quote}} <<<{{item|quote}}"
-  args:
-    executable: /bin/bash
-  with_items:
-    - |-
-      dn: {{ldap_root_dn}}
-      changetype: modify
-      replace: userPassword
-      userPassword: {CRYPT}{{ ldap_root_password | password_hash('sha512')}}
+    - dn: cn=CC-person,cn=schema,cn=config
+      objectClass:
+        - olcSchemaConfig
+        - olcConfig
+        - top
+      attributes:
+        cn: CC-person
+        olcObjectIdentifier:
+          - "{0}CC-Base 1.3.6.1.4.1.46840"
+          - "{1}CC-PersonBase CC-Base:1.2"
+        olcAttributeTypes:
+          - "{0}( CC-PersonBase:2 NAME 'CC-mailAlias' DESC 'A mailbox name (just the local part) that is available as an alias to this person.' SUP mail )"
+          - "{1}( CC-PersonBase:3 NAME 'CC-preferredMail' DESC 'An email address (full address) that is the preferred email address of this person.' SUP mail SINGLE-VALUE )"
+        olcObjectClasses: |-
+          {0}( CC-PersonBase:1 NAME 'CC-person' SUP top AUXILIARY MAY ( CC-mailAlias $ CC-preferredMail ) )
+
+    - dn: cn=CC-mailingList,cn=schema,cn=config
+      objectClass:
+        - olcSchemaConfig
+        - olcConfig
+        - top
+      attributes:
+        cn: CC-mailingList
+        olcObjectIdentifier:
+          - "{0}CC-Base 1.3.6.1.4.1.46840"
+          - "{1}CC-MailingListBase CC-Base:1.3"
+        olcAttributeTypes: |-
+          {0}( CC-MailingListBase:2 NAME 'CC-fullMailAddress' DESC 'Constitutes a full e-mail address with optional name like  Foo Bar <foo.bar@example.com>' SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{32768} )
+        olcObjectClasses: |-
+          {0}( CC-MailingListBase:1 NAME 'CC-mailingList' SUP CC-dynamicGroup STRUCTURAL MAY (cn $ CC-memberURL $ CC-fullMailAddress) )
+
+    - dn: olcOverlay={0}memberof,olcDatabase={1}mdb,cn=config
+      objectClass:
+        - olcConfig
+        - olcMemberOf
+        - olcOverlayConfig
+        - top
+      attributes:
+        olcOverlay: "{0}memberof"
+        olcMemberOfDangling: ignore
+        olcMemberOfRefInt: "TRUE"
+        olcMemberOfGroupOC: groupOfNames
+        olcMemberOfMemberAD: member
+        olcMemberOfMemberOfAD: memberOf
+
+    - dn: olcOverlay={1}refint,olcDatabase={1}mdb,cn=config
+      objectClass:
+        - olcConfig
+        - olcOverlayConfig
+        - olcRefintConfig
+        - top
+      attributes:
+        olcOverlay: "{1}refint"
+        olcRefintAttribute: memberof member manager owner
+        olcRefintNothing: "{{ldap_dummy_dn}}"
+
+    - dn: olcOverlay={2}dynlist,olcDatabase={1}mdb,cn=config
+      objectClass:
+        - olcOverlayConfig
+        - olcConfig
+        - olcDynamicList
+        - top
+      attributes:
+        olcOverlay: "{2}dynlist"
+        olcDlAttrSet:
+          - "{0}CC-mailingList CC-memberURL member"
+          - "{1}CC-dynamicGroup CC-memberURL member"

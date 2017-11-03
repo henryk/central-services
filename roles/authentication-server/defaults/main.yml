@@ -1,3 +1,15 @@
+ldap_reinitialize: false
 ldap_root_password: "{{ lookup('passwordstore', pass_prefix + pass_name + '/ldap/root create=true length=' + pass_generate_length ) }}"
 
+ldap_dummy_cn: dummy
+ldap_groups_ou: Groups
+ldap_users_ou: Users
+ldap_services_ou: Services
+ldap_mailing_lists_ou: Mailing-Lists
+
+ldap_full_access_groups:
+  - Board
+
 ldap_root_dn: "cn=admin,{{ ldap_domain | hostname_to_dn}}"
+ldap_dummy_dn: "cn={{ldap_dummy_cn}},{{ ldap_domain | hostname_to_dn}}"
+
