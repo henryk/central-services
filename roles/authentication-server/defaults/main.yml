@@ -1,2 +1,3 @@
 ldap_root_password: "{{ lookup('passwordstore', pass_prefix + pass_name + '/ldap/root create=true length=' + pass_generate_length ) }}"
 
+ldap_root_dn: "cn=admin,{{ ldap_domain | hostname_to_dn}}"

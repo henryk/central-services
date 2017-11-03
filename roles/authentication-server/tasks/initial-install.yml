@@ -21,6 +21,7 @@
     - { "n": "shared/organization", "t": "string", "v": "{{ldap_organization}}" }
     - { "n": "slapd/no_configuration", "t": "boolean", "v": "false" }
     - { "n": "slapd/move_old_database", "t": "boolean", "v": "true" }
+    - { "n": "slapd/backend", "t": "string", "v": "MDB" }
 
 - name: Configure LDAP
   shell: |
@@ -33,3 +34,81 @@
     path: "/etc/ldap/ldap.conf"
     regexp: '^\s*#?\s*BASE\s+'
     line: "BASE {{ldap_domain|hostname_to_dn}}"
+
+- name: Install module configuration
+  shell: "ldapadd -Y EXTERNAL -H ldapi:/// <<<{{item|quote}}"
+  args:
+    executable: /bin/bash
+  with_items:
+    # Load modules: dynlist, memberof, refint
+    - |-
+      dn: cn=module,cn=config
+      objectClass: olcModuleList
+      cn: module
+      olcModuleLoad: dynlist
+    - |-
+      dn: cn=module,cn=config
+      objectClass: olcModuleList
+      cn: module
+      olcModuleLoad: memberof
+    - |-
+      dn: cn=module,cn=config
+      objectClass: olcModuleList
+      cn: module
+      olcModuleLoad: refint
+    # Configure memberof and refint modules as overlays
+    - |-
+      dn: olcOverlay={0}memberof,olcDatabase={1}mdb,cn=config
+      objectClass: olcConfig
+      objectClass: olcMemberOf
+      objectClass: olcOverlayConfig
+      objectClass: top
+      olcOverlay: memberof
+      olcMemberOfDangling: ignore
+      olcMemberOfRefInt: TRUE
+      olcMemberOfGroupOC: groupOfNames
+      olcMemberOfMemberAD: member
+      olcMemberOfMemberOfAD: memberOf
+    - |-
+      dn: olcOverlay={1}refint,olcDatabase={1}mdb,cn=config
+      objectClass: olcConfig
+      objectClass: olcOverlayConfig
+      objectClass: olcRefintConfig
+      objectClass: top
+      olcOverlay: {1}refint
+      olcRefintAttribute: memberof member manager owner
+
+- name: Configure LDAP for secure passwords
+  shell: "ldapmodify -Y EXTERNAL -H ldapi:/// <<<{{item|quote}}"
+  args:
+    executable: /bin/bash
+  with_items:
+    # Change {CRYPT} salt format to something more secure than {SSHA}
+    - |-
+      dn: cn=config
+      changetype: modify
+      add: olcPasswordCryptSaltFormat
+      olcPasswordCryptSaltFormat: $6$rounds=50002$%.16s
+    # Switch password hashes to {CRYPT}
+    - |-
+      dn: olcDatabase={-1}frontend,cn=config
+      changetype: modify
+      add: olcPasswordHash
+      olcPasswordHash: {CRYPT}
+    # Re-set root password with the stronger hash
+    - |-
+      dn: olcDatabase={1}mdb,cn=config
+      changetype: modify
+      replace: olcRootPW
+      olcRootPW: {CRYPT}{{ ldap_root_password | password_hash('sha512')}}
+
+- name: Re-set LDAP admin password
+  shell: "ldapmodify -H ldap://127.0.0.1 -D {{ ldap_root_dn | quote}} -w {{ ldap_root_password|quote}} <<<{{item|quote}}"
+  args:
+    executable: /bin/bash
+  with_items:
+    - |-
+      dn: {{ldap_root_dn}}
+      changetype: modify
+      replace: userPassword
+      userPassword: {CRYPT}{{ ldap_root_password | password_hash('sha512')}}
