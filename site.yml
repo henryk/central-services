@@ -5,8 +5,8 @@
   run_once: True
   tasks:
     - name: Ensure Ansible version
-      fail: msg="This playbook requires Ansible 2.3 or greater."
-      when: ansible_version.major < 2 or (ansible_version.major == 2 and ansible_version.minor < 3)
+      fail: msg="This playbook requires Ansible 2.4 or greater."
+      when: ansible_version.major < 2 or (ansible_version.major == 2 and ansible_version.minor < 4)
     - name: Ensure jmespath is installed (ignore debug output)
       debug:
         msg: "{{ [] | json_query('[]') }}"

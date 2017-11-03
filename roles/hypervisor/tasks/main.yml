@@ -1,6 +1,5 @@
-# Broken, see https://github.com/ansible/ansible/issues/23774
-#- name: Wait for system to come up
-#  wait_for_connection:
+- name: Wait for system to come up
+  wait_for_connection:
 
 - name: Install packages
   apt: name={{item}} state=present
