@@ -1,0 +1,2 @@
+ldap_root_password: "{{ lookup('passwordstore', pass_prefix + pass_name + '/ldap/root create=true length=' + pass_generate_length ) }}"
+

@@ -1,0 +1,35 @@
+- name: Set LDAP root password
+  debconf:
+    name: slapd
+    question: "{{item}}"
+    value: "{{ldap_root_password}}"
+    vtype: password
+  with_items:
+    - slapd/internal/adminpw
+    - slapd/password1
+    - slapd/password2
+    - slapd/internal/generated_adminpw
+
+- name: Set LDAP configuration
+  debconf:
+    name: slapd
+    question: "{{item.n}}"
+    value: "{{item.v}}"
+    vtype: "{{item.t}}"
+  with_items:
+    - { "n": "slapd/domain", "t": "string", "v": "{{ldap_domain}}" }
+    - { "n": "shared/organization", "t": "string", "v": "{{ldap_organization}}" }
+    - { "n": "slapd/no_configuration", "t": "boolean", "v": "false" }
+    - { "n": "slapd/move_old_database", "t": "boolean", "v": "true" }
+
+- name: Configure LDAP
+  shell: |
+    dpkg-reconfigure slapd
+  environment:
+    DEBIAN_FRONTEND: non-interactive
+
+- name: Configure ldap.conf
+  lineinfile:
+    path: "/etc/ldap/ldap.conf"
+    regexp: '^\s*#?\s*BASE\s+'
+    line: "BASE {{ldap_domain|hostname_to_dn}}"

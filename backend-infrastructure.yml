@@ -1,0 +1,5 @@
+---
+- name: Install authentication server
+  hosts: authentication-server
+  roles:
+    - authentication-server
