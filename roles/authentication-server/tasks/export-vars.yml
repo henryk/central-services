@@ -1,0 +1,4 @@
+---
+- name: Export authentication-server vars
+  set_fact:
+    authentication_server_vars: "{{vars}}"
