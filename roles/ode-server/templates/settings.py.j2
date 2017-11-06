@@ -1,0 +1,39 @@
+# -*- coding: utf-8 -*-
+
+ODE_BASE_DN = "{{ authentication_server_vars['ldap_domain'] | hostname_to_dn}}"
+ODE_USER_BASE = "ou={{ authentication_server_vars['ldap_users_ou'] }},%(ODE_BASE_DN)s"
+ODE_GROUP_BASE = "ou={{ authentication_server_vars['ldap_groups_ou'] }},%(ODE_BASE_DN)s"
+ODE_MAILING_LIST_BASE = "ou={{ authentication_server_vars['ldap_mailing_lists_ou'] }},%(ODE_BASE_DN)s"
+ODE_USER_DN = "uid=%(username)s,ou={{ authentication_server_vars['ldap_users_ou'] }},%(ODE_BASE_DN)s"
+ODE_ALLOW_DIRECT_DN = True
+
+ISI_EVENT_SOURCES = {
+        "example-calendar": "https://example.com/calendar.ics"
+}
+
+LDAP_SERVER = '{{hostvars[ldap_server].internal_ip}}'
+LDAP_PORT = 389
+LDAP_TIMEOUT = 10
+LDAP_USE_TLS = False  # default
+
+MAIL_SERVER = 'mail.example.com'
+
+AMU_USERMODMAIL = dict(
+        sender = u"The Management <mgmt@example.com>",
+        subject = u"Your account at example.com",
+        body = u"""Your account at example.com has been created or changed:
+
+{% raw %}
+ Benutzername: {{ user.userid }}
+ Passwort:     {{ form.password.data }}
+{% endraw %}
+
+You can, and should, change your password at
+  https://example.com/selfservice/
+
+You can find more information at
+  https://wiki.example.com/
+
+Yours truly,
+  {% raw %}{{ g.ldap_user.name }}{% endraw %}
+""")

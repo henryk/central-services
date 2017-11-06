@@ -1,0 +1,80 @@
+- name: Install prerequisites
+  apt: state=present name={{item}}
+  with_items:
+    - build-essential
+    - python-dev
+    - python-pip
+    - python-virtualenv
+    - git
+    - rabbitmq-server
+    - acl  ## Set HACK HACK HACK below
+
+- name: Create a dedicated ode user
+  user:
+    name: "{{ode_user}}"
+    home: "{{ode_user_home}}"
+    state: present
+
+- name: Remount /tmp with acl support (HACK HACK HACK)
+  command: mount / -o remount,acl
+  changed_when: false
+  args:
+    warn: false
+
+- name: Download/Update ode
+  git:
+    clone: yes
+    dest: "{{ode_directory}}"
+    repo: https://github.com/henryk/ode.git
+    update: yes
+    version: "{{ode_version}}"
+  become_user: "{{ode_user}}"
+
+- name: Install base requirements via pip
+  pip:
+    requirements: "requirements.txt"
+    state: latest
+    virtualenv: "{{ode_venv}}"
+    chdir: "{{ode_directory}}"
+  become_user: "{{ode_user}}"
+
+- name: Install additional requirements via pip
+  pip:
+    name: gunicorn
+    state: latest
+    virtualenv: "{{ode_venv}}"
+    chdir: "{{ode_directory}}"
+  become_user: "{{ode_user}}"
+
+- name: Create instance directory
+  file:
+    state: directory
+    owner: "{{ode_user}}"
+    group: "{{ode_user}}"
+    path: "{{ode_instance}}"
+
+- name: Get authentication server configuration
+  include_role:
+    name: authentication-server
+    tasks_from: export-vars
+    allow_duplicates: true
+
+- name: Install ODE configuration
+  template:
+    dest: "{{ode_instance}}/settings.py"
+    owner: "{{ode_user}}"
+    group: "{{ode_user}}"
+    mode: "0600"
+    src: "templates/settings.py.j2"
+
+- name: Install ODE service file
+  template:
+    dest: "/etc/systemd/system/ode.service"
+    src: "templates/ode.service.j2"
+
+- name: Enable and start ODE service
+  systemd:
+    daemon_reload: yes
+    name: ode
+    enabled: yes
+    state: started

@@ -1,0 +1,20 @@
+[Unit]
+Description=ODE -- ODE Does Everything
+After=network.target
+
+[Service]
+User={{ode_user}}
+Group={{ode_user}}
+WorkingDirectory={{ode_directory}}
+Environment=PATH={{ode_venv}}/bin
+Environment=VIRTUAL_ENV={{ode_venv}}
+Environment=ODE_SETTINGS={{ode_instance}}/settings.py
+ExecStart={{ode_venv}}/bin/supervisord -n -c {{ode_directory}}/supervisord.conf
+ExecStop={{ode_venv}}/bin/supervisorctl -c {{ode_directory}}/supervisord.conf shutdown
+ExecReload={{ode_venv}}/bin/supervisorctl -c {{ode_directory}}/supervisord.conf reload
+KillMode=mixed
+Restart=on-failure
+RestartSec=30s
+
+[Install]
+WantedBy=multi-user.target

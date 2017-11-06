@@ -4,6 +4,11 @@
   roles:
     - zabbix-server
 
+- name: Install ODE
+  hosts: ode-server
+  roles:
+    - ode-server
+
 - name: Install OpenSlides
   hosts: openslides-server
   roles:
