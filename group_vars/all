@@ -8,3 +8,16 @@ ansible_become_pass: "{{ lookup('passwordstore', pass_user_host_path + ' create=
 ansible_become: True
 
 ansible_ssh_extra_args: "-o StrictHostKeyChecking=no"
+
+ldap_dummy_cn: dummy
+ldap_groups_ou: Groups
+ldap_users_ou: Users
+ldap_services_ou: Services
+ldap_mailing_lists_ou: Mailing-Lists
+
+ldap_full_access_groups:
+  - Board
+
+ldap_root_dn: "cn=admin,{{ ldap_domain | hostname_to_dn}}"
+ldap_dummy_dn: "cn={{ldap_dummy_cn}},{{ ldap_domain | hostname_to_dn}}"
+

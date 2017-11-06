@@ -53,12 +53,6 @@
     group: "{{ode_user}}"
     path: "{{ode_instance}}"
 
-- name: Get authentication server configuration
-  include_role:
-    name: authentication-server
-    tasks_from: export-vars
-    allow_duplicates: true
-
 - name: Install ODE configuration
   template:
     dest: "{{ode_instance}}/settings.py"

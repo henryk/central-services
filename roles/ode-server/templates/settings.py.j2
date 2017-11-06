@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 
-ODE_BASE_DN = "{{ authentication_server_vars['ldap_domain'] | hostname_to_dn}}"
-ODE_USER_BASE = "ou={{ authentication_server_vars['ldap_users_ou'] }},%(ODE_BASE_DN)s"
-ODE_GROUP_BASE = "ou={{ authentication_server_vars['ldap_groups_ou'] }},%(ODE_BASE_DN)s"
-ODE_MAILING_LIST_BASE = "ou={{ authentication_server_vars['ldap_mailing_lists_ou'] }},%(ODE_BASE_DN)s"
-ODE_USER_DN = "uid=%(username)s,ou={{ authentication_server_vars['ldap_users_ou'] }},%(ODE_BASE_DN)s"
+ODE_BASE_DN = "{{ ldap_domain | hostname_to_dn}}"
+ODE_USER_BASE = "ou={{ ldap_users_ou }},%(ODE_BASE_DN)s"
+ODE_GROUP_BASE = "ou={{ ldap_groups_ou }},%(ODE_BASE_DN)s"
+ODE_MAILING_LIST_BASE = "ou={{ ldap_mailing_lists_ou }},%(ODE_BASE_DN)s"
+ODE_USER_DN = "uid=%(username)s,ou={{ ldap_users_ou }},%(ODE_BASE_DN)s"
 ODE_ALLOW_DIRECT_DN = True
 
 ISI_EVENT_SOURCES = {
