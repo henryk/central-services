@@ -4,3 +4,5 @@ ode_directory: "{{ode_user_home}}/ode"
 ode_venv: "{{ode_directory}}/.venv"
 ode_version: master
 ode_instance: "{{ode_directory}}/instance"
+
+ode_allow_direct_dn: True
