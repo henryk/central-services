@@ -16,6 +16,7 @@ ldap_groups_ou: Groups
 ldap_users_ou: Users
 ldap_services_ou: Services
 ldap_mailing_lists_ou: Mailing-Lists
+ldap_aliases_ou: Aliases
 
 ldap_full_access_groups:
   - Board
