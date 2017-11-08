@@ -9,6 +9,8 @@ ansible_become: True
 
 ansible_ssh_extra_args: "-o StrictHostKeyChecking=no"
 
+ldap_server: null
+
 ldap_dummy_cn: dummy
 ldap_groups_ou: Groups
 ldap_users_ou: Users
@@ -20,4 +22,3 @@ ldap_full_access_groups:
 
 ldap_root_dn: "cn=admin,{{ ldap_domain | hostname_to_dn}}"
 ldap_dummy_dn: "cn={{ldap_dummy_cn}},{{ ldap_domain | hostname_to_dn}}"
-

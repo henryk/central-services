@@ -146,7 +146,7 @@
 - name: Configure nextcloud for domain and base URL
   shell: |
     cd "{{nextcloud_installation_path}}"
-    if [ $(php occ config:system:get htaccess.RewriteBase) != "/" ]; then
+    if [ "$(php occ config:system:get htaccess.RewriteBase)" != "/" ]; then
       php occ config:system:set htaccess.RewriteBase --value '/'
       php occ maintenance:update:htaccess
     fi
@@ -166,3 +166,7 @@
   become_user: "www-data"
   register: configure_nextcloud_redis
   changed_when: configure_nextcloud_redis.stdout_lines[0] != configure_nextcloud_redis.stdout_lines[-1]
+
+- name: Configure LDAP
+  include_tasks: tasks/configure-ldap.yml
+  when: ldap_server != None

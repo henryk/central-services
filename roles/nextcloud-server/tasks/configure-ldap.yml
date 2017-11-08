@@ -1,0 +1,70 @@
+- name: Install PHP LDAP packages
+  apt: state=present name={{item}}
+  with_items:
+    - php7.0-ldap
+  notify:
+    - restart apache2
+
+- name: Set up LDAP service user
+  include_role:
+    name: authentication-server
+    tasks_from: setup-service-user
+    allow_duplicates: true
+  vars:
+    service_user: "{{nextcloud_ldap_service_user}}"
+    service_password: "{{nextcloud_ldap_service_password}}"
+    destination_host: "{{ldap_server}}"
+  delegate_to: "{{ldap_server}}"
+
+
+- name: Configure nextcloud to use LDAP
+  shell: |
+    cd "{{nextcloud_installation_path}}"
+    BEFORE_CONFIG=$(md5sum config/config.php)
+    php occ app:enable user_ldap
+    PREFIX=$(php occ ldap:show-config | grep Configuration | head -n 1 | cut -d '|' -f 3 | xargs)
+    if [ -z "${PREFIX}" ]; then
+      php occ ldap:create-empty-config
+      BEFORE_LDAP="null"
+      PREFIX=$(php occ ldap:show-config | grep Configuration | head -n 1 | cut -d '|' -f 3 | xargs)
+    else
+      BEFORE_LDAP=$(php occ ldap:show-config $PREFIX | md5sum)
+    fi
+
+    php occ ldap:set-config $PREFIX ldapHost {{hostvars[ldap_server].internal_ip | quote}}
+    php occ ldap:set-config $PREFIX ldapPort 389
+    php occ ldap:set-config $PREFIX hasMemberOfFilterSupport 1
+    php occ ldap:set-config $PREFIX ldapBase {{ ldap_domain | hostname_to_dn | quote}}
+    php occ ldap:set-config $PREFIX ldapBaseGroups {{ ("ou=" + ldap_groups_ou + "," + (ldap_domain | hostname_to_dn) ) | quote}}
+    php occ ldap:set-config $PREFIX ldapBaseUsers {{ ("ou=" + ldap_users_ou + "," + (ldap_domain | hostname_to_dn) ) | quote}}
+    php occ ldap:set-config $PREFIX ldapAgentName {{ ("uid=" + nextcloud_ldap_service_user + ",ou=" + ldap_services_ou + "," + (ldap_domain | hostname_to_dn) ) | quote }}
+    php occ ldap:set-config $PREFIX ldapAgentPassword {{ nextcloud_ldap_service_password | quote}}
+    {% set ldap_user_filter = "(&(|(objectclass=inetOrgPerson))" + 
+          ( 
+            ( 
+              "(|(memberof=cn=" +
+                ( 
+                  (ldap_full_access_groups + ldap_nextcloud_access_groups) 
+                  | join( ",ou=" + ldap_groups_ou + "," + (ldap_domain | hostname_to_dn) + "(memberof=cn=" )
+                )       + ",ou=" + ldap_groups_ou + "," + (ldap_domain | hostname_to_dn) +
+              "))"
+            ) if (ldap_full_access_groups + ldap_nextcloud_access_groups) 
+            else ""
+          ) + 
+        ")"
+    %}
+    php occ ldap:set-config $PREFIX ldapUserFilter {{ ldap_user_filter | quote }}
+    php occ ldap:set-config $PREFIX ldapLoginFilter {{ ("(&" + ldap_user_filter + "(uid=%uid))") | quote }}
+    php occ ldap:set-config $PREFIX ldapEmailAttribute CC-preferredMail
+    php occ ldap:set-config $PREFIX ldapExpertUUIDUserAttr uid
+    php occ ldap:set-config $PREFIX ldapGroupDisplayName cn
+    php occ ldap:set-config $PREFIX ldapGroupFilter '(&(|(objectclass=groupOfNames)))'
+    php occ ldap:set-config $PREFIX ldapGroupFilterObjectclass 'groupOfNames'
+    php occ ldap:set-config $PREFIX ldapLoginFilterMode 1
+    php occ ldap:set-config $PREFIX ldapUserDisplayName cn
+
+    echo $BEFORE_CONFIG " " $BEFORE_LDAP
+    echo $(md5sum config/config.php) " " $(php occ ldap:show-config $PREFIX | md5sum)
+  become_user: "www-data"
+  register: configure_nextcloud_ldap
+  changed_when: configure_nextcloud_ldap.stdout_lines[-2] != configure_nextcloud_ldap.stdout_lines[-1]

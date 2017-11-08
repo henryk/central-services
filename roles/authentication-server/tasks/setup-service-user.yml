@@ -1,0 +1,12 @@
+- name: Create service user
+  ldap_entry:
+    bind_dn: "{{ldap_root_dn}}"
+    bind_pw: "{{ldap_root_password}}"
+    dn: "uid={{service_user}},ou={{ldap_services_ou}},{{ ldap_domain | hostname_to_dn}}"
+    objectClass:
+      - account
+      - simpleSecurityObject
+      - top
+    attributes:
+      uid: "{{service_user}}"
+      userPassword: "{CRYPT}{{ service_password | password_hash('sha512')}}"
