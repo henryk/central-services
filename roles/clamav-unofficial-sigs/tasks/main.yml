@@ -5,8 +5,11 @@
 - name: "Make sure the 'official' unofficial sigs package is uninstalled"
   apt: name=clamav-unofficial-sigs state=absent
 
-- name: Install 'dnsutils' package, needed for the cronjob
-  apt: name=dnsutils state=present
+- name: Install required packages
+  apt: name={{item}} state=present
+  with_items:
+    - dnsutils
+    - rsync
 
 - block:
     - name: "Download clamav-unofficial-sigs version {{clamav_unofficial_sigs.version}}"
