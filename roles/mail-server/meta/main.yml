@@ -2,3 +2,7 @@
 dependencies:
   - postfix-server
   - dovecot-server
+  - postfix-spf
+  - clamav-milter
+  - clamav-unofficial-sigs
+  - postfix-restrictions
