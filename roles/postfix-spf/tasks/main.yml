@@ -1,0 +1,29 @@
+- name: Install software
+  package:
+    name: '{{ item }}'
+    state: 'present'
+  with_items:
+    - 'postfix-policyd-spf-python'
+
+- name: Have policyd-spf be started
+  lineinfile:
+    state: 'present'
+    dest: '/etc/postfix/master.cf'
+    regexp: '^\s*policyd-spf'
+    line: 'policyd-spf  unix  -       n       n       -       0       spawn  user=policyd-spf argv=/usr/bin/policyd-spf'
+  notify: restart postfix
+
+- name: Set policyd-spf timeout
+  shell: md5sum /etc/postfix/main.cf; postconf -e policyd-spf_time_limit=3600; md5sum /etc/postfix/main.cf
+  register: postconf_set_timeout
+  changed_when: postconf_set_timeout.stdout_lines[0] != postconf_set_timeout.stdout_lines[-1]
+  notify: restart postfix
+
+- name: Get smtpd_recipient_restrictions
+  command: postconf -h smtpd_recipient_restrictions
+  register: smtpd_recipient_restrictions
+  changed_when: false
+- name: Set smtpd_recipient_restrictions
+  command: postconf -e "smtpd_recipient_restrictions = {{ smtpd_recipient_restrictions.stdout }} check_policy_service unix:private/policyd-spf"
+  when: not "private/policyd-spf" in smtpd_recipient_restrictions.stdout
+  notify: restart postfix

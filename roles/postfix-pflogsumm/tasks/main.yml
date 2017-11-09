@@ -1,0 +1,16 @@
+- name: Install software
+  package:
+    name: '{{ item }}'
+    state: 'present'
+  with_items:
+    - 'pflogsumm'
+    - 'bsd-mailx'
+
+- name: Set up cron job
+  cron:
+    state: present
+    hour: 3
+    minute: 4
+    name: Mail postfix log summary to postmaster
+    value: |
+      /bin/bash -c '/usr/sbin/pflogsumm -q --rej-add-from -u 5 -d yesterday /var/log/mail.log{,.1}  | mail -s "Postfix mail report" postmaster'

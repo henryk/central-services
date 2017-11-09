@@ -1,0 +1,3 @@
+clamav_unofficial_sigs:
+  version: 5.6.2
+  checksum: sha256:233404d767fcb7d2b82defef831d584cbbcc7105f6bbc586d69a0a960bc0d4df

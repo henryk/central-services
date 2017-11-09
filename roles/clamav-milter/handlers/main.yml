@@ -1,0 +1,11 @@
+- name: restart postfix
+  service: name=postfix state=restarted
+
+- name: Apply clamav-milter debconf
+  shell: md5sum /etc/clamav/clamav-milter.conf; rm -f /etc/clamav/clamav-milter.conf; dpkg-reconfigure -f noninteractive clamav-milter; md5sum /etc/clamav/clamav-milter.conf
+  register: debconf_clamav_output
+  changed_when: debconf_clamav_output.stdout_lines[0] != debconf_clamav_output.stdout_lines[-1]
+  notify: restart clamav-milter
+
+- name: restart clamav-milter
+  service: name=clamav-milter state=restarted

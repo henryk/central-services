@@ -1,0 +1,9 @@
+- name: Get {{param}}
+  command: postconf -h {{param}}
+  register: enable_restrictions_orig
+  changed_when: false
+
+- name: Set {{param}}
+  command: postconf -e "{{param}} = {{ enable_restrictions_orig.stdout }} {{value}}"
+  when: 'not match in enable_restrictions_orig.stdout'
+  notify: restart postfix

@@ -1,0 +1,54 @@
+- name: Check whether clamav-unofficial-sigs is installed
+  stat: path=/etc/clamav-unofficial-sigs
+  register: clamav_unofficial_sigs__stat
+
+- name: "Make sure the 'official' unofficial sigs package is uninstalled"
+  apt: name=clamav-unofficial-sigs state=absent
+
+- name: Install 'dnsutils' package, needed for the cronjob
+  apt: name=dnsutils state=present
+
+- block:
+    - name: "Download clamav-unofficial-sigs version {{clamav_unofficial_sigs.version}}"
+      get_url:
+        url: "https://github.com/extremeshok/clamav-unofficial-sigs/archive/{{clamav_unofficial_sigs.version}}.tar.gz"
+        dest: "/tmp/clamav-unofficial-sigs_{{clamav_unofficial_sigs.version}}.tar.gz"
+        checksum: "{{clamav_unofficial_sigs.checksum}}"
+
+    - name: Create directories for clamav-unofficial-sigs
+      file:
+        dest: "{{item}}"
+        state: "directory"
+      with_items:
+        - /usr/local/sbin/
+        - /var/log/clamav-unofficial-sigs/
+        - /etc/clamav-unofficial-sigs/
+
+    - name: Extract files
+      command: 'tar --strip 1 --wildcards -xzf "/tmp/clamav-unofficial-sigs_{{clamav_unofficial_sigs.version}}.tar.gz" -C "{{item.directory}}" --transform "{{ item.transform if "transform" in item else ""  }}" --exclude "{{ item.exclude if "exclude" in item else ""}}" "clamav-unofficial-sigs-{{clamav_unofficial_sigs.version}}/{{item.file}}"'
+      with_items:
+        - { directory: "/usr/local/sbin/", file: "clamav-unofficial-sigs.sh"}
+        - { directory: "/etc/clamav-unofficial-sigs/", file: "config/master.conf", transform: "s,config/,,"}
+        - { directory: "/etc/clamav-unofficial-sigs/", file: "config/os.ubuntu.conf", transform: "s,config/os.ubuntu,os,"}
+        - { directory: "/etc/", file: "systemd"}
+
+    - name: Install configuration
+      template:
+        src: user.conf.j2
+        dest: /etc/clamav-unofficial-sigs/user.conf
+        owner: root
+        group: root
+        mode: 0644
+
+
+    - name: Install additional files
+      command: /usr/local/sbin/clamav-unofficial-sigs.sh --install-all
+
+    - name: Run once
+      shell: |
+        cp -a /etc/clamav-unofficial-sigs/user.conf /etc/clamav-unofficial-sigs/user.conf.bckup ;
+        echo "enable_random=no" >> /etc/clamav-unofficial-sigs/user.conf ;
+        /usr/local/sbin/clamav-unofficial-sigs.sh --force ;
+        mv /etc/clamav-unofficial-sigs/user.conf.bckup /etc/clamav-unofficial-sigs/user.conf
+
+  when: clamav_unofficial_sigs__stat.stat.exists == False

@@ -1,0 +1,9 @@
+clamav_configuration:
+  - { question: 'AddGroups', value: 'postdrop clamav' }
+  - { question: 'LogClean', value: 'Basic', vtype: 'select' }
+  - { question: 'LogInfected', value: 'Basic', vtype: 'select' }
+  - { question: 'OnInfected', value: 'Reject', type: 'select' }
+  - { question: 'RejectMsg', value: 'Message rejected because a virus was detected: %v' }
+  - { question: 'SupportMultipleRecipients', value: 'true' }
+  - { question: 'MilterSocket', value: '/var/spool/postfix/var/run/clamav/clamav-milter.ctl' }
+  - { question: 'debconf', value: 'true', vtype: 'boolean' }

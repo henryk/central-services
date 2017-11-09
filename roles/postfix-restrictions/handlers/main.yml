@@ -1,0 +1,5 @@
+- name: restart postfix
+  service: name=postfix state=restarted
+
+- name: update sender_access
+  command: postmap /etc/postfix/sender_access

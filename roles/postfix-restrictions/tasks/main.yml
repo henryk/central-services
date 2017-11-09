@@ -1,0 +1,30 @@
+- name: Install local list of forbidden domains
+  copy:
+    content: |
+      foxmail.com REJECT We won't accept mail from foxmail.com, it's always spam. Sorry.
+    dest: '/etc/postfix/sender_access'
+    owner: 'root'
+    group: 'root'
+    mode: '0644'
+  notify:
+    - update sender_access
+
+
+- name: Configure Postfix restrictions
+  include: tasks/enable_restriction.yml value={{restriction.value}} param={{restriction.param|default('smtpd_recipient_restrictions')}} match={{restriction.match|default(restriction.value)}}
+  static: no
+  with_items:
+    - { value: "check_sender_access hash:/etc/postfix/sender_access"}
+    - { value: "permit_dnswl_client neighbours.ploetzli.ch=127.0.0.2"}
+    - { value: "permit_dnswl_client list.dnswl.org"}
+    - { value: "reject_rhsbl_helo dbl.spamhaus.org"}
+    - { value: "reject_rhsbl_sender dbl.spamhaus.org"}
+    - { value: "permit_dnswl_client neighbours.ploetzli.ch=127.0.0.2", param: "smtpd_client_restrictions" }
+    - { value: "permit_dnswl_client list.dnswl.org", param: "smtpd_client_restrictions" }
+    - { value: "reject_rbl_client zen.spamhaus.org", param: "smtpd_client_restrictions" }
+    - { value: "reject_rbl_client bl.spamcop.net", param: "smtpd_client_restrictions" }
+    - { value: "reject_rbl_client cbl.abuseat.org", param: "smtpd_client_restrictions" }
+    - { value: "reject_rhsbl_client dbl.spamhaus.org", param: "smtpd_client_restrictions" }
+    - { value: "reject_rbl_client ix.dnsbl.manitu.net", param: "smtpd_client_restrictions" }
+  loop_control:
+    loop_var: restriction

@@ -1,0 +1,46 @@
+- name: Install software
+  package:
+    name: '{{ item }}'
+    state: 'present'
+  with_items:
+    - 'clamav-milter'
+    - 'debconf-utils'
+
+- name: Configure clamav-milter debconf
+  debconf:
+    name: clamav-milter
+    question: 'clamav-milter/{{ item.question }}'
+    value: '{{ item.value }}'
+    vtype: '{{ item.vtype if "vtype" in item else "string" }}'
+  with_items: "{{clamav_configuration}}"
+  notify: Apply clamav-milter debconf
+
+- name: Start and enable clamav-daemon
+  service: name=clamav-daemon state=started enabled=true
+- name: Enable clamav-milter
+  service: name=clamav-milter enabled=true
+  notify: restart clamav-milter
+
+- name: Prepare Postfix for milters
+  shell: md5sum /etc/postfix/main.cf; postconf -e milter_protocol=2 milter_default_action=accept; md5sum /etc/postfix/main.cf
+  register: postconf_enable_milter_output
+  changed_when: postconf_enable_milter_output.stdout_lines[0] != postconf_enable_milter_output.stdout_lines[-1]
+  notify: restart postfix
+
+- name: Get smtpd_milters
+  command: postconf -h smtpd_milters
+  register: smtpd_milters
+  changed_when: false
+- name: Set smtpd_milters
+  command: postconf -e "smtpd_milters = {{ smtpd_milters.stdout }} unix:var/run/clamav/clamav-milter.ctl"
+  when: not "var/run/clamav/clamav-milter.ctl" in smtpd_milters.stdout
+  notify: restart postfix
+
+- name: Get non_smtpd_milters
+  command: postconf -h non_smtpd_milters
+  register: non_smtpd_milters
+  changed_when: false
+- name: Set non_smtpd_milters
+  command: postconf -e "non_smtpd_milters = {{ non_smtpd_milters.stdout }} unix:var/run/clamav/clamav-milter.ctl"
+  when: not "var/run/clamav/clamav-milter.ctl" in non_smtpd_milters.stdout
+  notify: restart postfix
