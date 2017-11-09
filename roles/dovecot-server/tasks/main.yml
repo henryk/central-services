@@ -1,0 +1,7 @@
+---
+- name: Install prerequisites
+  apt: state=present name={{item}}
+  with_items:
+    - dovecot-imapd
+    - dovecot-managesieved
+    - dovecot-sieve

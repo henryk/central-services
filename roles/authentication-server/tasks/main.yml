@@ -34,6 +34,7 @@
     - "{{ldap_services_ou}}"
     - "{{ldap_mailing_lists_ou}}"
     - "{{ldap_aliases_ou}}"
+    - "{{ldap_access_rights_ou}}"
 
 - name: Create privileged groups
   ldap_entry:

@@ -3,3 +3,8 @@
   hosts: authentication-server
   roles:
     - authentication-server
+
+- name: Install mail server
+  hosts: mail-server
+  roles:
+    - mail-server
