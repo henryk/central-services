@@ -11,16 +11,16 @@
 
 
 - name: Configure Postfix restrictions
-  include: tasks/enable_restriction.yml value={{restriction.value}} param={{restriction.param|default('smtpd_recipient_restrictions')}} match={{restriction.match|default(restriction.value)}}
+  include: tasks/enable_restriction.yml value={{restriction.value}} param={{restriction.param|default('smtpd_recipient_restrictions')}} match={{restriction.match|default(restriction.value)}} append={{restriction.append|default(True)}}
   static: no
-  with_items:
-    - { value: "check_sender_access hash:/etc/postfix/sender_access"}
-    - { value: "permit_dnswl_client neighbours.ploetzli.ch=127.0.0.2"}
-    - { value: "permit_dnswl_client list.dnswl.org"}
+  with_items: ## Note: "append: False" items will end up in inverse order
+    - { value: "permit_dnswl_client list.dnswl.org", append: False}
+    - { value: "permit_dnswl_client neighbours.ploetzli.ch=127.0.0.2", append: False}
+    - { value: "check_sender_access hash:/etc/postfix/sender_access", append: False}
     - { value: "reject_rhsbl_helo dbl.spamhaus.org"}
     - { value: "reject_rhsbl_sender dbl.spamhaus.org"}
-    - { value: "permit_dnswl_client neighbours.ploetzli.ch=127.0.0.2", param: "smtpd_client_restrictions" }
-    - { value: "permit_dnswl_client list.dnswl.org", param: "smtpd_client_restrictions" }
+    - { value: "permit_dnswl_client list.dnswl.org", param: "smtpd_client_restrictions", append: False }
+    - { value: "permit_dnswl_client neighbours.ploetzli.ch=127.0.0.2", param: "smtpd_client_restrictions", append: False }
     - { value: "reject_rbl_client zen.spamhaus.org", param: "smtpd_client_restrictions" }
     - { value: "reject_rbl_client bl.spamcop.net", param: "smtpd_client_restrictions" }
     - { value: "reject_rbl_client cbl.abuseat.org", param: "smtpd_client_restrictions" }

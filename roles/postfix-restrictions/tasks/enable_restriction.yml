@@ -4,6 +4,19 @@
   changed_when: false
 
 - name: Set {{param}}
-  command: postconf -e "{{param}} = {{ enable_restrictions_orig.stdout }} {{value}}"
+  command: |
+    postconf -e {{
+      (
+        (
+          param + " = " + (
+            enable_restrictions_orig.stdout|trim
+              + (sep if (enable_restrictions_orig.stdout|trim|length) else "")
+          ) + value
+        ) if (append|default(True)) else (
+            param + " = " + value + sep + (enable_restrictions_orig.stdout|trim)
+        )
+      ) | quote }}
+  vars:
+    sep: ",  "
   when: 'not match in enable_restrictions_orig.stdout'
   notify: restart postfix
