@@ -1,0 +1,13 @@
+- debug:
+    msg: "aliasedObjectName={{object_name|escape_ldap}},ou={{right}},ou={{ldap_access_rights_ou}},{{ ldap_domain | hostname_to_dn}}"
+
+- name: Create access right alias
+  ldap_entry:
+    bind_dn: "{{ldap_root_dn}}"
+    bind_pw: "{{ldap_root_password}}"
+    dn: "aliasedObjectName={{object_name|escape_ldap}},ou={{right}},ou={{ldap_access_rights_ou}},{{ ldap_domain | hostname_to_dn}}"
+    objectClass:
+      - alias
+      - top
+    attributes:
+      aliasedObjectName: "{{object_name}}"

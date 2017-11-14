@@ -42,11 +42,16 @@ def dn_to_hostname(arg):
 
     return '.'.join(dcValues)
 
+def escape_ldap(data):
+    "Escape for LDAP names: [,=\\] => \\XX"
+    return ldap.dn.escape_dn_chars(data)
+
 
 # Declare the available filters to Ansible:
 class FilterModule(object):
     def filters(self):
         return {
             'hostname_to_dn': hostname_to_dn,
-            'dn_to_hostname': dn_to_hostname
+            'dn_to_hostname': dn_to_hostname,
+            'escape_ldap': escape_ldap
         }

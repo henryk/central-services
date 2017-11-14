@@ -9,6 +9,7 @@ ansible_become: True
 
 ansible_ssh_extra_args: "-o StrictHostKeyChecking=no"
 
+ldap_domain: "{{primary_domain}}"
 ldap_server: null
 
 ldap_dummy_cn: dummy
@@ -18,6 +19,8 @@ ldap_services_ou: Services
 ldap_mailing_lists_ou: Mailing-Lists
 ldap_aliases_ou: Aliases
 ldap_access_rights_ou: Access Rights
+
+ldap_access_right_mail: Mail
 
 ldap_full_access_groups:
   - Board

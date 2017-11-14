@@ -1,0 +1,96 @@
+- name: Set up LDAP service user
+  include_role:
+    name: authentication-server
+    tasks_from: setup-service-user
+    allow_duplicates: true
+  vars:
+    service_user: "{{postfix_ldap_service_user}}"
+    service_password: "{{postfix_ldap_service_password}}"
+    destination_host: "{{ldap_server}}"
+  delegate_to: "{{ldap_server}}"
+
+- name: Set up Mail access rights for mail groups
+  include_role:
+    name: authentication-server
+    tasks_from: setup-access-right
+    allow_duplicates: true
+  vars:
+    right: "{{ldap_access_right_mail}}"
+    object_name: "cn={{item}},ou={{ldap_groups_ou}},{{ ldap_domain | hostname_to_dn}}"
+    destination_host: "{{ldap_server}}"
+  delegate_to: "{{ldap_server}}"
+  with_items: "{{ldap_mail_access_groups}}"
+
+- name: "Configure Postfix for LDAP: Disable local transport"
+  shell: |
+    md5sum /etc/postfix/main.cf
+    postconf -e {{ (item.key+" = "+item.value)|quote }}
+    md5sum /etc/postfix/main.cf
+  register: configure_postfix_main_ldap_cf
+  changed_when: configure_postfix_main_ldap_cf.stdout_lines[0] != configure_postfix_main_ldap_cf.stdout_lines[-1]
+  with_dict:
+    local_transport: "error:Local Transport Disabled"
+  notify:
+    - restart postfix
+
+- name: Install LDAP Postfix configuration
+  copy:
+    dest: "/etc/postfix/{{item.name}}"
+    content: "{{item.content}}"
+  with_items:
+    - name: ldap_virtual_recipients.cf
+      content: |
+        bind = yes
+        bind_dn = uid={{postfix_ldap_service_user}},ou={{ldap_services_ou}},{{ ldap_domain | hostname_to_dn}}
+        bind_pw = {{postfix_ldap_service_password|quote}}
+        server_host = ldap://{{ldap_server}}
+        search_base = ou={{ldap_access_right_mail}},ou={{ldap_access_rights_ou}},{{ ldap_domain | hostname_to_dn}}
+        dereference = 3
+        domain = {{mail_domain}}
+        query_filter = (|{% if ldap_mail_access_groups %}(&(objectClass=inetOrgPerson)(|(uid=%u)(CC-mailAlias=%u))(|{% for group in ldap_mail_access_groups %}(memberOf=cn={{group}},ou={{ldap_groups_ou}},{{ ldap_domain | hostname_to_dn}}){% endfor %})){% endif %}(&(objectClass=account)(uid=%u)))
+        result_attribute = uid
+        result_format = %s@{{mail_domain}}
+    - name: ldap_virtual_aliases.cf
+      content: |
+        bind = yes
+        bind_dn = uid={{postfix_ldap_service_user}},ou={{ldap_services_ou}},{{ ldap_domain | hostname_to_dn}}
+        bind_pw = {{postfix_ldap_service_password|quote}}
+        server_host = ldap://{{ldap_server}}
+        search_base = ou={{ldap_aliases_ou}},{{ ldap_domain | hostname_to_dn}}
+        domain = {{mail_domain}}
+        query_filter = (&(objectClass=groupOfNames)(cn=%u))
+        result_attribute = 
+        result_format = %s@{{mail_domain}}
+        special_result_attribute = member
+        leaf_result_attribute = uid
+    - name: ldap_virtual_alias_recipients.cf
+      content: |
+        bind = yes
+        bind_dn = uid={{postfix_ldap_service_user}},ou={{ldap_services_ou}},{{ ldap_domain | hostname_to_dn}}
+        bind_pw = {{postfix_ldap_service_password|quote}}
+        server_host = ldap://{{ldap_server}}
+        search_base = ou={{ldap_users_ou}},{{ ldap_domain | hostname_to_dn}}
+        domain = {{mail_domain}}
+        query_filter = (&(objectClass=inetOrgPerson)(cc-mailAlias=%u))
+        result_attribute = uid
+        result_format = %s@{{mail_domain}}
+  notify:
+    - restart postfix
+
+
+- name: Configure Postfix maps
+  include_role:
+    name: postfix-server
+    tasks_from: postfix-setting
+    allow_duplicates: true
+  vars:
+    value: "{{config_item.value}}"
+    param: "{{config_item.param}}"
+    match: "{{config_item.match|default(config_item.value)}}"
+    append: "{{config_item.append|default(True)}}"
+  with_items: ## Note: "append: False" items will end up in inverse order
+    - {param: "virtual_mailbox_maps", value: "proxy:ldap:/etc/postfix/ldap_virtual_recipients.cf"}
+    - {param: "virtual_alias_maps", value: "proxy:ldap:/etc/postfix/ldap_virtual_aliases.cf"}
+    - {param: "virtual_alias_maps", value: "proxy:ldap:/etc/postfix/ldap_virtual_alias_recipients.cf"}
+  loop_control:
+    loop_var: config_item

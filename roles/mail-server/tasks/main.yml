@@ -1,0 +1,65 @@
+---
+- name: Set Debian mailname
+  copy:
+    dest: /etc/mailname
+    content: |
+      {{mail_domain}}
+  notify:
+    - restart postfix
+
+- name: Create dedicated virtual mail group
+  group:
+    name: "{{virtual_mail_user}}"
+    state: present
+    system: yes
+
+- name: Create dedicated virtual mail user
+  user:
+    name: "{{virtual_mail_user}}"
+    group: "{{virtual_mail_user}}"
+    system: yes
+    home: "/var/spool/{{virtual_mail_user}}"
+    state: present
+    createhome: yes
+
+- name: Enable dovecot as delivery agent in Postfix
+  blockinfile:
+    path: "/etc/postfix/master.cf"
+    state: "present"
+    content: |
+      dovecot   unix  -       n       n       -       -       pipe
+              flags=ODRhu user={{virtual_mail_user}}:{{virtual_mail_user}} argv=/usr/lib/dovecot/deliver -e -f ${sender} -d ${user}
+  notify:
+    - restart postfix
+
+- name: Configure Postfix
+  shell: |
+    md5sum /etc/postfix/main.cf
+    postconf -e {{ (item.key+" = "+item.value)|quote }}
+    md5sum /etc/postfix/main.cf
+  register: configure_postfix_main_cf
+  changed_when: configure_postfix_main_cf.stdout_lines[0] != configure_postfix_main_cf.stdout_lines[-1]
+  with_dict:
+    myhostname: "{{mail_own_name}}"
+    myorigin: "/etc/mailname"
+    smtpd_delay_reject: "yes"
+    smtpd_helo_required: "yes"
+    # SASL Dovecot
+    smtpd_sasl_auth_enable: "yes"
+    smtpd_sasl_security_options: "noplaintext"
+    smtpd_sasl_tls_security_options: "noanonymous"
+    smtpd_sasl_type: "dovecot"
+    smtpd_sasl_path: "private/auth"
+    # Dovecot virtual domains
+    dovecot_destination_recipient_limit: "1"
+    virtual_mailbox_domains: "{{mail_domain}} {{mail_own_name}}"
+    virtual_transport: dovecot
+    mydestination: localhost
+    # Further security
+    disable_vrfy_command: "yes"
+  notify:
+    - restart postfix
+
+- name: Configure Postfix for LDAP 
+  include_tasks: tasks/configure-ldap.yml
+  when: ldap_server != None
