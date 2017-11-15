@@ -37,13 +37,15 @@
   copy:
     dest: "/etc/postfix/{{item.name}}"
     content: "{{item.content}}"
+    mode: 0600
+    owner: postfix
   with_items:
     - name: ldap_virtual_recipients.cf
       content: |
         bind = yes
         bind_dn = uid={{postfix_ldap_service_user}},ou={{ldap_services_ou}},{{ ldap_domain | hostname_to_dn}}
         bind_pw = {{postfix_ldap_service_password|quote}}
-        server_host = ldap://{{ldap_server}}
+        server_host = ldap://{{hostvars[ldap_server].internal_ip}}
         search_base = ou={{ldap_access_right_mail}},ou={{ldap_access_rights_ou}},{{ ldap_domain | hostname_to_dn}}
         dereference = 3
         domain = {{mail_domain}}
@@ -55,7 +57,7 @@
         bind = yes
         bind_dn = uid={{postfix_ldap_service_user}},ou={{ldap_services_ou}},{{ ldap_domain | hostname_to_dn}}
         bind_pw = {{postfix_ldap_service_password|quote}}
-        server_host = ldap://{{ldap_server}}
+        server_host = ldap://{{hostvars[ldap_server].internal_ip}}
         search_base = ou={{ldap_aliases_ou}},{{ ldap_domain | hostname_to_dn}}
         domain = {{mail_domain}}
         query_filter = (&(objectClass=groupOfNames)(cn=%u))
@@ -68,7 +70,7 @@
         bind = yes
         bind_dn = uid={{postfix_ldap_service_user}},ou={{ldap_services_ou}},{{ ldap_domain | hostname_to_dn}}
         bind_pw = {{postfix_ldap_service_password|quote}}
-        server_host = ldap://{{ldap_server}}
+        server_host = ldap://{{hostvars[ldap_server].internal_ip}}
         search_base = ou={{ldap_users_ou}},{{ ldap_domain | hostname_to_dn}}
         domain = {{mail_domain}}
         query_filter = (&(objectClass=inetOrgPerson)(cc-mailAlias=%u))

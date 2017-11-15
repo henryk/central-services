@@ -6,4 +6,7 @@ virtual_mail_user: vmail
 postfix_ldap_service_user: postfix
 postfix_ldap_service_password: "{{ lookup('passwordstore', pass_prefix + inventory_hostname + '/ldap/' + postfix_ldap_service_user + ' create=true length=' + pass_generate_length ) }}"
 
+dovecot_ldap_service_user: dovecot
+dovecot_ldap_service_password: "{{ lookup('passwordstore', pass_prefix + inventory_hostname + '/ldap/' + dovecot_ldap_service_user + ' create=true length=' + pass_generate_length ) }}"
+
 ldap_mail_access_groups: []

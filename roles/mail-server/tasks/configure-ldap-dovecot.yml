@@ -1,0 +1,68 @@
+---
+- name: Set up LDAP service user
+  include_role:
+    name: authentication-server
+    tasks_from: setup-service-user
+    allow_duplicates: true
+  vars:
+    service_user: "{{dovecot_ldap_service_user}}"
+    service_password: "{{dovecot_ldap_service_password}}"
+    destination_host: "{{ldap_server}}"
+  delegate_to: "{{ldap_server}}"
+
+- name: Install Dovecot configuration files
+  template:
+    dest: /etc/dovecot/{{item.directory|default("")}}{{item.name}}
+    mode: 0600
+    owner: root
+    src: "{{item.name}}.j2"
+  notify:
+    - restart dovecot
+  with_items:
+    - name: dovecot-ldap.conf.ext
+    - name: auth-ldap.conf.ext
+      directory: "conf.d/"
+    - name: 10-master.conf
+      directory: "conf.d/"
+    - name: 15-mailboxes.conf
+      directory: "conf.d/"
+    - name: 90-sieve.conf
+      directory: "conf.d/"
+    ## FIXME Install the sieve default file
+
+
+- name: Configure Dovecot
+  lineinfile:
+    path: "/etc/dovecot/conf.d/{{item.name}}.conf"
+    line: "{{item.line|default( item.key|default('BLA') + ' = ' + item.value|default('BLA') )}}"
+    regexp: "{{item.regexp|default( '\\s*#?\\s*' + item.key|default('BLA') + '(\\s|=)' )}}"
+    insertafter: "{{item.after|default(omit)}}"
+    state: present
+  notify:
+    - restart dovecot
+  with_items:
+    - name: 10-auth
+      key: disable_plaintext_auth
+      value: "yes"
+    - name: 10-auth
+      key: auth_mechanisms
+      value: plain login anonymous
+    - name: 10-auth
+      regexp: '\s*#?\s*!include\s*auth-system.conf.ext(\s*|$)'
+      line: '#!include auth-system.conf.ext'
+    - name: 10-auth
+      regexp: '\s*#?\s*!include\s*auth-ldap.conf.ext(\s*|$)'
+      line: '!include auth-ldap.conf.ext'
+    - name: 10-mail
+      key: mail_location
+      value: maildir:~/Maildir
+    ## FIXME SSL
+    - name: 15-lda
+      key: postmaster_address
+      value: "postmaster@{{mail_domain}}"
+    - name: 15-lda
+      key: mail_plugins
+      value: "$mail_plugins sieve"
+    - name: 20-managesieve
+      key: protocols
+      value: "$protocols sieve"

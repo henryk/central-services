@@ -61,5 +61,21 @@
     - restart postfix
 
 - name: Configure Postfix for LDAP 
-  include_tasks: tasks/configure-ldap.yml
+  include_tasks: tasks/configure-ldap-postfix.yml
+  when: ldap_server != None
+
+- name: Configure Dovecot for config files
+  lineinfile:
+    path: /etc/dovecot/dovecot.conf
+    line: "{{item.line}}"
+    regexp: "{{item.regexp}}"
+    state: present
+  with_items:
+    - line: "!include conf.d/*.conf"
+      regexp: '^\s*#?\s*!include\s+conf\.d/\*\.conf\s*$'
+  notify:
+    - restart dovecot
+
+- name: Configure Dovecot for LDAP
+  include_tasks: tasks/configure-ldap-dovecot.yml
   when: ldap_server != None
