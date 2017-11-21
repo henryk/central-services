@@ -1,7 +1,0 @@
-[zabbix-proxies]
-
-[hypervisors]
-
-[zabbix-proxies:children]
-hypervisors
-

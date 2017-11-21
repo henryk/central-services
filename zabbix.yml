@@ -1,11 +1,19 @@
 ---
+- name: Set dynamic groups
+  hosts: all
+  gather_facts: false
+  tasks:
+  - name: Group Zabbix clients
+    group_by:
+      key: zabbix_client_{{ 'yes' if zabbix_server_name is defined else 'no' }}
+
 - name: Install zabbix proxy
   hosts: zabbix-proxies
   roles:
     - zabbix-proxy
 
 - name: Install zabbix agent
-  hosts: all
+  hosts: zabbix_client_yes
   roles:
     - zabbix-agent
   vars:

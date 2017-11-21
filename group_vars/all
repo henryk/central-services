@@ -27,3 +27,23 @@ ldap_full_access_groups:
 
 ldap_root_dn: "cn=admin,{{ ldap_domain | hostname_to_dn}}"
 ldap_dummy_dn: "cn={{ldap_dummy_cn}},{{ ldap_domain | hostname_to_dn}}"
+
+user_admin_groups:
+  all: []
+  Debian:
+    - sudo
+    - adm
+  RedHat:
+    - wheel
+
+distribution_name_map:
+  ubuntu: Debian
+  fedora: RedHat
+
+user_defaults:
+  is_admin: False
+  shell: /bin/bash
+  ssh_keys: []
+  groups: []
+
+zabbix_admin_password: "{{ lookup('passwordstore', pass_prefix + pass_name + '/zabbix/Admin create=true length=' + pass_generate_length ) }}"

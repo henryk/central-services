@@ -8,16 +8,15 @@
 - name: Install zabbix agent for Debian based systems
   include: debian.yml
   static: no
-  when: ansible_os_family == 'Debian' and zabbix_server is defined
+  when: ansible_os_family == 'Debian' and zabbix_server_name is defined
 
 # FIXME: RedHat
 
 - name: Configure zabbix host on the server
-  local_action:
-    module: zabbix_host
-    server_url: "http://{{zabbix_server}}/zabbix/"
+  zabbix_host:
+    server_url: "http://{{hostvars[zabbix_server_name].internal_ip}}/zabbix/"
     login_user: "{{zabbix_server_user}}"
-    login_password: "{{zabbix_server_password}}"
+    login_password: "{{zabbix_server_password|default(zabbix_admin_password)}}"
     host_name: "{{inventory_hostname}}"
     host_groups: "{{ zabbix_host_groups }}"
     link_templates: "{{ zabbix_link_templates_actual }}"
@@ -31,12 +30,14 @@
       - type: 1
         main: 1
         useip: 1
-        ip: "{{ ip if ip is defined else ansible_all_ipv4_addresses[0] }}"
+        ip: "{{ internal_ip if internal_ip is defined else ansible_all_ipv4_addresses[0] }}"
         dns: ""
         port: 10050
     proxy: "{{ (zabbix_proxy + ' proxy') if zabbix_proxy is defined else omit}}"
   vars:
     ansible_become: False
+    destination_host: "{{zabbix_server_name}}"
+  delegate_to: "{{zabbix_server_name}}"
 
 # - name: Reload configuration cache on proxy
 #   command: zabbix_proxy -R config_cache_reload

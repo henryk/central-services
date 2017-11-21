@@ -1,0 +1,35 @@
+---
+- name: Get libvirt network facts
+  virt_net: command=facts
+
+- debug:
+    var: ansible_libvirt_networks
+
+- name: Make sure the 'default' network is undefined
+  virt_net:
+    name: default
+    state: absent
+  when: libvirt_remove_default_network
+
+- name: Define network
+  virt_net:
+    name: "{{network_name}}"
+    state: present
+    autostart: yes
+    xml: "{{ lookup('template', 'net.xml.j2')  }}"
+  with_dict: "{{ networks }}"
+  vars:
+    network_name: "{{item.key}}"
+    network_definition: "{{item.value}}"
+
+- name: Start network (because virt_net is stupid)
+  virt_net:
+    name: "{{item}}"
+    state: active
+  with_items: "{{networks}}"
+
+- name: Set autostart (because virt_net is stupid)
+  virt_net:
+    name: "{{item}}"
+    autostart: yes
+  with_items: "{{networks}}"

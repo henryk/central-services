@@ -1,5 +1,5 @@
 <domain type='kvm'>
-  <name>{{libvirt_domain.name}}</name>
+  <name>{{libvirt_domain.inventory_hostname}}</name>
   <memory unit='KiB'>{{libvirt_domain.memsize}}</memory>
   <currentMemory unit='KiB'>{{libvirt_domain.memsize}}</currentMemory>
   <vcpu placement='static'>{{libvirt_domain.cpus}}</vcpu>
@@ -30,17 +30,17 @@
     <emulator>/usr/bin/kvm-spice</emulator>
     <disk type='block' device='disk'>
       <driver name='qemu' type='raw' cache='none' io='native'/>
-      <source dev='/dev/{{libvirt_vg_name}}/{{libvirt_domain.name}}'/>
+      <source dev='/dev/{{libvirt_vg_name}}/{{libvirt_domain.inventory_hostname}}'/>
       <target dev='vda' bus='virtio'/>
     </disk>
     <controller type='virtio-serial' index='0'>
     </controller>
     <interface type='network'>
-      <source network='default' bridge='{{libvirt_net_device}}'/>
+      <source network='{{libvirt_domain.network}}' bridge='{{libvirt_domain.network}}'/>
       <model type='virtio'/>
       <filterref filter='clean-traffic'>
         <parameter name='CTRL_IP_LEARNING' value='none'/>
-        <parameter name='IP' value='{{ libvirt_domain.ip }}'/>
+        <parameter name='IP' value='{{ libvirt_domain.internal_ip }}'/>
       </filterref>
     </interface>
     <serial type='pty'>

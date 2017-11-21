@@ -3,3 +3,5 @@ pass_prefix: "{{ hostvars[hypervisor_machine]['pass_prefix'] }}{{ hostvars[hyper
 ansible_outgoing_user: "{{ hostvars[hypervisor_machine]['ansible_user'] if 'ansible_user' in hostvars[hypervisor_machine] else lookup('pipe', 'whoami') }}"
 
 ansible_ssh_common_args: '-o ProxyCommand="ssh -W %h:%p -q {{ ansible_outgoing_user }}@{{hypervisor_machine}}"'
+
+ansible_host: "{{internal_ip}}"

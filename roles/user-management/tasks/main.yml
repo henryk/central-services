@@ -1,6 +1,6 @@
 ---
 - name: Handle user
-  include: tasks/handle_user.yml user={{user_definition_defaults|combine(user_definition)}}
+  include: tasks/handle_user.yml user={{user_defaults|combine(user_definition)}}
   static: no
   with_dict: "{{users}}"
   loop_control:

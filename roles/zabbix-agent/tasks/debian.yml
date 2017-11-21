@@ -32,6 +32,8 @@
     TLSAccept: psk
     TLSPSKIdentity: "{{ zabbix_psk_id }}"
     TLSPSKFile: "{{ zabbix_psk_file }}"
+  vars:
+    zabbix_server: "{{hostvars[zabbix_server_name].internal_ip}}"
 
   notify: restart zabbix agent (debian)
 

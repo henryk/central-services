@@ -4,7 +4,7 @@
   user:
     name: "{{user_name}}"
     append: yes
-    groups: "{{ (user_admin_groups if user.is_admin else []) + user.groups_additional }}"
+    groups: "{{ ( (user_admin_groups.all + (user_admin_groups[ansible_os_family] if ansible_os_family in user_admin_groups else [])) if user.is_admin else []) + user.groups }}"
     comment: "{{user.comment|default(omit)}}"
     home: "{{ user.home | default('/home/' + user_name) }}"
     shell: "{{ user.shell }}"

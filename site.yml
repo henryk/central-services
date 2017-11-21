@@ -14,12 +14,12 @@
         ansible_become_pass: ""
 
 
-- include: hypervisors.yml
-- include: backend-infrastructure.yml
-- include: database-setup.yml
-- include: web-infrastructure.yml
-- include: web-apps.yml
-- include: misc-apps.yml
-- include: zabbix.yml
-- include: manage-users.yml
-- include: run-updates.yml
+- import_playbook: hypervisors.yml
+- import_playbook: backend-infrastructure.yml
+- import_playbook: database-setup.yml
+- import_playbook: web-infrastructure.yml
+- import_playbook: web-apps.yml
+- import_playbook: misc-apps.yml
+- import_playbook: zabbix.yml
+- import_playbook: manage-users.yml
+- import_playbook: run-updates.yml

@@ -18,7 +18,7 @@
     state: present
     vg: "{{ libvirt_vg_name }}"
     pvs: "{{ libvirt_vg_pvs }}"
-  when: libvirt_vg_pvs is defined and libvirt_vg_pvs|length
+  when: libvirt_vg_pvs is defined and libvirt_vg_pvs!=""
 
 - name: Define storage pool
   virt_pool:
@@ -26,6 +26,7 @@
     autostart: yes
     state: present
     xml: "{{ lookup('template', 'pool.xml.j2')  }}"
+  when: libvirt_vg_pvs is defined and libvirt_vg_pvs!=""
 
 - name: Start storage pool
   virt_pool:
@@ -39,56 +40,54 @@
 
 - name: Delete domains that are obsolete
   include_tasks: tasks/delete_domain.yml
-  with_items: "{{ libvirt_domains_deleted }}"
+  with_items: "{{ domains_deleted }}"
   loop_control:
     loop_var: libvirt_domain_delete
   when: libvirt_domain_delete in libvirt_all_domains or override_force_delete
 
 - include_tasks: tasks/list.yml
-  when: override_force_delete or libvirt_all_domains | intersect(libvirt_domains_deleted)
+  when: override_force_delete or libvirt_all_domains | intersect(domains_deleted)
+
+- name: "Setup virtual networking"
+  import_tasks: tasks/setup_networks.yml
 
 - name: Setup domains that are missing
-  include_tasks: tasks/setup_domain.yml libvirt_domain={{libvirt_domain_defaults|combine(domain_definition)}}
-  with_items: "{{ libvirt_domains }}"
+  include_tasks: tasks/setup_domain.yml
+  with_items: "{{ hostvars | json_query(query_a) }}"
   loop_control:
     loop_var: domain_definition
-  when: domain_definition.name not in libvirt_all_domains
+  when: domain_definition.inventory_hostname not in libvirt_all_domains
+  vars:
+    query_a: "*|[?hypervisor_machine=='{{inventory_hostname}}']"
+    hypervisor_machine: "{{inventory_hostname}}"
+    ansible_outgoing_user: None
+    libvirt_domain: "{{domain_defaults|combine(domain_definition)}}"
 
 - name: Set autostart property
   virt:
-    name: "{{item.name}}"
-    autostart: "{{(libvirt_domain_defaults|combine(item)).autostart}}"
+    name: "{{item.inventory_hostname}}"
+    autostart: "{{(domain_defaults|combine(item)).autostart}}"
     command: info  ## Need to provide a command, but not a state!, for "autostart" to be updated
-  with_items: "{{ libvirt_domains }}"
+  with_items: |
+    {{ hostvars | json_query("*|[?hypervisor_machine=='{{inventory_hostname}}'].{inventory_hostname:inventory_hostname,autostart:autostart}")}}
 
 - name: "Start domain"
   vars:
-    libvirt_domain: "{{libvirt_domain_defaults|combine(domain_definition)}}"
+    libvirt_domain: "{{domain_defaults|combine(domain_definition)}}"
   virt:
-    name: "{{libvirt_domain.name}}"
+    name: "{{libvirt_domain.inventory_hostname}}"
     state: running
-  with_items: "{{ libvirt_domains }}"
+  with_items: |
+    {{ hostvars | json_query("*|[?hypervisor_machine=='{{inventory_hostname}}'].{inventory_hostname:inventory_hostname,autostart:autostart}")}}
   loop_control:
     loop_var: domain_definition
   when: libvirt_domain.autostart
 
-- name: "Wait for domain to come up"
-  wait_for:
-    host: "{{item.ip}}"
-    port: 22
-  with_items: "{{libvirt_domains}}"
-  when: (libvirt_domain_defaults|combine(item)).autostart
+- name: Wait for domain to come up
+  wait_for_connection:
+  delegate_to: "{{item}}"
+  vars:
+    destination_host: "{{item}}"
+  with_items: |
+    {{ hostvars | json_query("*|[?hypervisor_machine=='{{inventory_hostname}}'].inventory_hostname")}}
 
-# - name: Get libvirt network facts
-#   virt_net: command=facts
-
-## Network (re)definition is basically broken with the virt_net module
-## Ignore it for now.  TODO
-## User must set up network before use
-#
-# - name: Define network
-#   virt_net:
-#     name: "{{libvirt_net_name}}"
-#     autostart: yes
-#     state: present
-#     xml: "{{ lookup('template', 'net.xml.j2')  }}"

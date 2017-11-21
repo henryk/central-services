@@ -1,1 +1,0 @@
-zabbix_admin_password: "{{ lookup('passwordstore', pass_prefix + pass_name + '/zabbix/Admin create=true length=' + pass_generate_length ) }}"

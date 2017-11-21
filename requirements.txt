@@ -2,3 +2,4 @@ ansible
 jmespath
 zabbix-api
 python-ldap
+netaddr
