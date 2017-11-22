@@ -31,6 +31,7 @@ virt_builder_install:
 domain_parameters: "{{(domain_defaults|list)+domain_parameters_additional}}"
 
 domain_parameters_additional:
+  - hypervisor_machine
   - inventory_hostname
   - internal_ip
   - network
