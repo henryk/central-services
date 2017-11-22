@@ -36,7 +36,7 @@
     <controller type='virtio-serial' index='0'>
     </controller>
     <interface type='network'>
-      <source network='{{libvirt_domain.network}}' bridge='{{libvirt_domain.network}}'/>
+      <source network='{{libvirt_domain.network}}' bridge='{{hostvars[libvirt_domain.hypervisor_machine].networks[libvirt_domain.network].interface|default(libvirt_domain.network)}}'/>
       <model type='virtio'/>
       <filterref filter='clean-traffic'>
         <parameter name='CTRL_IP_LEARNING' value='none'/>
