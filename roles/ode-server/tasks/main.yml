@@ -30,6 +30,17 @@
     version: "{{ode_version}}"
   become_user: "{{ode_user}}"
 
+- name: Upgrade setuptools/pip via pip
+  pip:
+    state: latest
+    name: "{{item}}"
+    virtualenv: "{{ode_venv}}"
+    chdir: "{{ode_directory}}"
+  become_user: "{{ode_user}}"
+  with_items:
+    - pip
+    - setuptools
+
 - name: Install base requirements via pip
   pip:
     requirements: "requirements.txt"
