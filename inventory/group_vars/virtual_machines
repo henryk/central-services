@@ -1,7 +1,9 @@
 pass_prefix: "{{ hostvars[hypervisor_machine]['pass_prefix'] }}{{ hostvars[hypervisor_machine]['pass_name'] }}/"
 
-ansible_outgoing_user: "{{ hostvars[hypervisor_machine]['ansible_user'] if 'ansible_user' in hostvars[hypervisor_machine] else lookup('pipe', 'whoami') }}"
+ansible_outgoing_user: "{{ hostvars[hypervisor_machine].ansible_user|default(lookup('pipe', 'whoami')) }}"
+
+#ansible_ssh_common_args: '-o ProxyCommand="ssh -W %h:%p -q {{ hostvars[destination_host].ansible_outgoing_user if destination_host is defined else ansible_outgoing_user }}@{{hypervisor_machine}}"'
 
 ansible_ssh_common_args: '-o ProxyCommand="ssh -W %h:%p -q {{ ansible_outgoing_user }}@{{hypervisor_machine}}"'
 
-ansible_host: "{{internal_ip}}"
+ansible_host: "{{ hostvars[destination_host].internal_ip if destination_host is defined else internal_ip}}"

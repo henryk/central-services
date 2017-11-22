@@ -3,6 +3,8 @@ libvirt_vg_pvs: ""
 libvirt_pool_name: "{{libvirt_vg_name}}"
 
 libvirt_remove_default_network: True
+libvirt_port_forward_configuration_directory: /etc/libvirt/port_forwards
+libvirt_port_forward_hook: /etc/libvirt/hooks/qemu
 
 virt_builder_options:
   all: --update --root-password disabled
@@ -26,12 +28,24 @@ virt_builder_install:
     - python2-dnf
     - libselinux-python
 
+domain_parameters: "{{(domain_defaults|list)+domain_parameters_additional}}"
+
+domain_parameters_additional:
+  - inventory_hostname
+  - internal_ip
+  - network
+
+domain_parameters_jmes_map: >
+  {% for p in domain_parameters %}{{p}}:{{p}}{% if not loop.last%},{%endif%}{%endfor%}
+
 domain_defaults:
   distribution: ubuntu-16.04
   disksize: 5G
   memsize: 393216
   cpus: 1
   autostart: yes
+  port_forwards: []
+  users: []
   groups: []
   virt_builder_install: []
   virt_builder_options: ""

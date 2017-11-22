@@ -48,46 +48,52 @@
 - include_tasks: tasks/list.yml
   when: override_force_delete or libvirt_all_domains | intersect(domains_deleted)
 
+- name: Install the port forward configuration directory
+  file:
+    path: "{{libvirt_port_forward_configuration_directory}}"
+    state: directory
+
+- name: Install network hook script
+  copy:
+    dest: "{{libvirt_port_forward_hook}}"
+    src: 'qemu-hook.py'
+    mode: 'a+x'
+
 - name: "Setup virtual networking"
   import_tasks: tasks/setup_networks.yml
 
+## NOTE: Only parameters set in domain_parameters get passed to the sub tasks
+##  This is necessary to prevent ansible_ssh_common_args from causing a recursion loop
+##  of nightmarish proportions. 
+##  For reference: The error chain was:
+##    ansible_ssh_common_args: "... destination_host ..."
+##    destination_host: "{{libvirt_domain.inventory_hostname}}"
+##    libvirt_domain: "{{domain_defaults|combine(domain_definition)}}"
+##    domain_definition:
+##      ...
+##      ansible_ssh_common_args: "... destination_host ..."
+##    destination_host: "{{libvirt_domain.inventory_hostname}}"
+##    ... ad nauseam ...
+##
+
 - name: Setup domains that are missing
   include_tasks: tasks/setup_domain.yml
-  with_items: "{{ hostvars | json_query(query_a) }}"
+  with_items: "{{ hostvars | json_query(query_a) | select_keys(domain_parameters) }}"
   loop_control:
     loop_var: domain_definition
   when: domain_definition.inventory_hostname not in libvirt_all_domains
   vars:
     query_a: "*|[?hypervisor_machine=='{{inventory_hostname}}']"
     hypervisor_machine: "{{inventory_hostname}}"
-    ansible_outgoing_user: None
-    libvirt_domain: "{{domain_defaults|combine(domain_definition)}}"
+    libvirt_domain: "{{domain_definition | default_hash(domain_defaults) }}"
 
-- name: Set autostart property
-  virt:
-    name: "{{item.inventory_hostname}}"
-    autostart: "{{(domain_defaults|combine(item)).autostart}}"
-    command: info  ## Need to provide a command, but not a state!, for "autostart" to be updated
-  with_items: |
-    {{ hostvars | json_query("*|[?hypervisor_machine=='{{inventory_hostname}}'].{inventory_hostname:inventory_hostname,autostart:autostart}")}}
-
-- name: "Start domain"
-  vars:
-    libvirt_domain: "{{domain_defaults|combine(domain_definition)}}"
-  virt:
-    name: "{{libvirt_domain.inventory_hostname}}"
-    state: running
-  with_items: |
-    {{ hostvars | json_query("*|[?hypervisor_machine=='{{inventory_hostname}}'].{inventory_hostname:inventory_hostname,autostart:autostart}")}}
+- name: Update all domains
+  include_tasks: tasks/update_domain.yml
+  with_items: "{{ hostvars | json_query(query_a) | select_keys(domain_parameters) }}"
   loop_control:
     loop_var: domain_definition
-  when: libvirt_domain.autostart
-
-- name: Wait for domain to come up
-  wait_for_connection:
-  delegate_to: "{{item}}"
   vars:
-    destination_host: "{{item}}"
-  with_items: |
-    {{ hostvars | json_query("*|[?hypervisor_machine=='{{inventory_hostname}}'].inventory_hostname")}}
+    query_a: "*|[?hypervisor_machine=='{{inventory_hostname}}']"
+    hypervisor_machine: "{{inventory_hostname}}"
+    libvirt_domain: "{{domain_definition | default_hash(domain_defaults) }}"
 

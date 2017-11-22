@@ -1,0 +1,38 @@
+---
+- name: Install port forwarding configuration
+  copy:
+    dest: "{{libvirt_port_forward_configuration_directory}}/{{libvirt_domain.inventory_hostname}}.conf"
+    content: "{{configuration|to_nice_json}}"
+  vars:
+    configuration:
+      domain: "{{libvirt_domain.inventory_hostname}}"
+      network: "{{libvirt_domain.network}}"
+      internal_ip: "{{libvirt_domain.internal_ip}}"
+      forwardings: "{{libvirt_domain.port_forwards}}"
+  register: install_port_forwarding_configuration
+
+- name: Re-load port forwarding
+  command: "{{libvirt_port_forward_hook}} reconnect {{libvirt_domain.inventory_hostname|quote}}"
+  when: install_port_forwarding_configuration.changed
+
+- name: Set autostart property
+  virt:
+    name: "{{libvirt_domain.inventory_hostname}}"
+    autostart: "{{libvirt_domain.autostart}}"
+    command: info  ## Need to provide a command, but not a state!, for "autostart" to be updated
+
+- name: "Start domain"
+  virt:
+    name: "{{libvirt_domain.inventory_hostname}}"
+    state: running
+  when: libvirt_domain.autostart
+
+
+## Still slightly broken
+# - name: Wait for domain to come up
+#   wait_for_connection:
+#   delegate_to: "{{libvirt_domain.inventory_hostname}}"
+#   vars:
+#     destination_host: "{{libvirt_domain.inventory_hostname}}"
+#   when: libvirt_domain.autostart
+

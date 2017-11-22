@@ -1,6 +1,7 @@
 ---
 - name: Set up hypervisors
   hosts: hypervisors
+  strategy: debug
   roles:
     - upgrade-reboot
     - hypervisor

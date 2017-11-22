@@ -1,1 +1,2 @@
 pass_prefix: ""
+ansible_outgoing_user: "{{ansible_user}}"
