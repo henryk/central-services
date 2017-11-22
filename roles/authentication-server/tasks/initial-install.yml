@@ -23,6 +23,9 @@
     - { "n": "slapd/move_old_database", "t": "boolean", "v": "true" }
     - { "n": "slapd/backend", "t": "string", "v": "MDB" }
 
+- name: Install OpenLDAP
+  apt: name=slapd state=present
+
 - name: Configure LDAP
   shell: |
     dpkg-reconfigure slapd
