@@ -6,6 +6,7 @@
   vars:
     configuration:
       domain: "{{libvirt_domain.inventory_hostname}}"
+      external_ip: "{{libvirt_domain.external_ip|default(ansible_default_ipv4.address)}}"
       network: "{{libvirt_domain.network}}"
       internal_ip: "{{libvirt_domain.internal_ip}}"
       forwardings: "{{libvirt_domain.port_forwards}}"

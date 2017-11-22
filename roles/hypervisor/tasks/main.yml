@@ -12,6 +12,7 @@
     - python-libvirt
     - python-lxml
     - dnsmasq-utils
+    - apparmor
 
 - name: Set up volume group
   lvg:
