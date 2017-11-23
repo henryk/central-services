@@ -26,7 +26,7 @@
   loop_control:
     loop_var: domain
   vars:
-    query_a: "*.web[?frontend=='{{inventory_hostname}}'][]"
+    query_a: "*.web[?frontend=='{{inventory_hostname}}'][]|[?letsencrypt]"
     query_b: "[].{name:name,aliases:aliases,frontend:frontend,letsencrypt:letsencrypt}"
 
 - include: tasks/setup-handler.yml letsencrypt_handler_conf="{{letsencrypt_handler_defaults|combine(letsencrypt_handler)}}"
@@ -36,7 +36,7 @@
   loop_control:
     loop_var: account_data
   vars:
-    query_a: "*.web[?frontend=='{{inventory_hostname}}'][].letsencrypt"
+    query_a: "*.web[?frontend=='{{inventory_hostname}}'][]|[?letsencrypt].letsencrypt"
     query_b: "[].{staging:staging, email:email}[]"
 
 - name: "Set up HTTPS"
