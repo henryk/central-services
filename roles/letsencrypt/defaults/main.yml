@@ -1,6 +1,6 @@
 letsencrypt_handler_defaults:
   user: letsencrypt-handler
-  acme_tiny_version: '7ef9164dc141f369f5f92a1132b3ef9e12e95b73'
+  acme_tiny_version: '4ed13950c0a9cf61f1ca81ff1874cde1cf48ab32'
 
 letsencrypt_handler: {}
 
