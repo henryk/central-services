@@ -1,7 +1,7 @@
 # {{ ansible_managed }}
 
 {% for hostname in hostvars -%}
-    {%- set managed_domains = hostvars[hostname].web|default({})|json_query("[?frontend == "+inventory_hostname+"]") -%}
+    {%- set managed_domains = hostvars[hostname].web|default({})|json_query("[?frontend == '"+inventory_hostname+"']") -%}
     {%- if managed_domains -%}
 
         {%- for domain in managed_domains %}
