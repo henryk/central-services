@@ -14,6 +14,7 @@
     mode: 0600
     regexp: '^\s*#?\s*{{item.key}}\s*='
     line: '{{item.key}}={{item.value}}'
+    create: yes
   with_dict:
     username: "{{backup_user}}"
     password: "{{backup_password}}"
