@@ -43,8 +43,8 @@ class Forwarding(object):
         privip = config["internal_ip"]
         for forward in config["forwardings"]:
           proto = forward.get("proto", "tcp")
-          pubport = forward["src"]
           privport = forward["dst"]
+          pubport = forward.get("src", privport)
 
           self.add_rule_tmp("prerouting", "-p", proto, "-d", pubip, "--dport", pubport, "-j", "DNAT", "--to", "%s:%s" % (privip, privport) )
           self.add_rule_tmp("forward",    "-p", proto, "-d", privip, "--dport", privport, "-j", "ACCEPT")
