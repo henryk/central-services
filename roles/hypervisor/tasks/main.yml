@@ -59,6 +59,8 @@
     dest: "{{libvirt_port_forward_hook}}"
     src: 'qemu-hook.py'
     mode: 'a+x'
+  tags:
+    - update_nat
 
 - name: "Setup virtual networking"
   import_tasks: tasks/setup_networks.yml

@@ -11,10 +11,14 @@
       internal_ip: "{{libvirt_domain.internal_ip}}"
       forwardings: "{{libvirt_domain.port_forwards}}"
   register: install_port_forwarding_configuration
+  tags:
+    - update_nat
 
 - name: Re-load port forwarding
   command: "{{libvirt_port_forward_hook}} reconnect {{libvirt_domain.inventory_hostname|quote}}"
   when: install_port_forwarding_configuration.changed
+  tags:
+    - update_nat
 
 - name: Set autostart property
   virt:
