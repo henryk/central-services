@@ -35,6 +35,8 @@
       &{{r.name|default("")|relative_dns(primary_domain)}}::{{r.nameserver|relative_dns(primary_domain)}}:{{r.ttl|default(dns_ttl)}}
       {% elif r.RR == 'A' %}
       +{{r.name|default("")|relative_dns(primary_domain)}}:{{r.address}}:{{r.ttl|default(dns_ttl)}}
+      {% elif r.RR == 'AAAA' %}
+      3{{r.name|default("")|relative_dns(primary_domain)}}:{{r.address|ipv6|ipv6_explode|regex_replace(":","")}}:{{r.ttl|default(dns_ttl)}}
       {% elif r.RR == 'MX' %}
       @{{r.name|default("")|relative_dns(primary_domain)}}::{{r.mailserver}}:{{r.prio|default(10)}}:{{r.ttl|default(dns_ttl)}}
       {% elif r.RR == 'TXT' %}

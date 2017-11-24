@@ -35,6 +35,18 @@ def encode_djbdns(data):
 	import string
 	return "".join( ( e if e in (string.letters+string.digits) else ("\\%s" % oct(ord(e))[-3:])  ) for e in data )
 
+def ipv6_explode(data):
+	"very simple 'decompression' for IPv6 addresses: 2001::1 -> 2001:0000:0000:0000:0000:0000:0000:0001"
+	parts = data.split(":")
+	retval = []
+	for i,p in enumerate(parts):
+		if p == "":
+			while len(retval) + len(parts) - (i+1) < 8:
+				retval.append("0000")
+		else:
+			retval.append( ("0000"+p)[-4:] )
+	return ":".join(retval)
+
 class FilterModule(object):
 	'''
 	custom jinja2 filters
@@ -45,5 +57,6 @@ class FilterModule(object):
 			'default_hash': default_hash,
 			'select_keys': select_keys,
 			'relative_dns': relative_dns,
-			'encode_djbdns': encode_djbdns
+			'encode_djbdns': encode_djbdns,
+			'ipv6_explode': ipv6_explode
 		}
