@@ -1,0 +1,93 @@
+---
+- name: Install software
+  apt: state=present name={{item}}
+  with_items:
+    - dbndns
+
+- name: Create system users
+  user:
+    name: "{{item}}"
+    state: present
+    system: yes
+  with_items:
+    - "{{tinydns_user}}"
+    - "{{axfrdns_user}}"
+    - "{{tinydns_log_user}}"
+
+- name: Check for prior tinydns installation
+  stat:
+    path: "{{ tinydns_directory }}"
+  register: tinydns_directory_stat
+
+- name: Generate initial tinydns directory
+  shell: |
+    tinydns-conf {{tinydns_user|quote}} {{tinydns_log_user|quote}} {{tinydns_directory|quote}} 0.0.0.0
+  when: not tinydns_directory_stat.stat.exists
+
+- name: Change tinydns database
+  copy:
+    dest: "{{tinydns_directory}}/root/data"
+    content: |
+      {% for r in dns_records %}
+      {% if r.RR == 'SOA' %}
+      Z{{r.name|default("")|relative_dns(primary_domain)}}:{{r.primary_dns|relative_dns(primary_domain)}}:{{r.hostmaster|replace("@",".")}}
+      {% elif r.RR == 'NS' %}
+      &{{r.name|default("")|relative_dns(primary_domain)}}::{{r.nameserver|relative_dns(primary_domain)}}:{{r.ttl|default(dns_ttl)}}
+      {% elif r.RR == 'A' %}
+      +{{r.name|default("")|relative_dns(primary_domain)}}:{{r.address}}:{{r.ttl|default(dns_ttl)}}
+      {% elif r.RR == 'MX' %}
+      @{{r.name|default("")|relative_dns(primary_domain)}}::{{r.mailserver}}:{{r.prio|default(10)}}:{{r.ttl|default(dns_ttl)}}
+      {% elif r.RR == 'TXT' %}
+      '{{r.name|default("")|relative_dns(primary_domain)}}:{{r.text|encode_djbdns}}:{{r.ttl|default(dns_ttl)}}
+      {% endif %}
+      {% endfor %}
+  tags:
+    - update_dns
+
+- name: Update tinydns database
+  shell: |
+    cd {{ (tinydns_directory+"/root") |quote}}
+    make
+  tags:
+    - update_dns
+
+- name: Let svscan know about the tinydns service
+  file:
+    dest: "{{svscan_directory}}/{{tinydns_svscan_name}}"
+    src: "{{tinydns_directory}}"
+    state: link
+
+
+- name: Check for prior axfrdns installation
+  stat:
+    path: "{{ axfrdns_directory }}"
+  register: axfrdns_directory_stat
+
+- name: Generate initial axfrdns directory
+  shell: |
+    axfrdns-conf {{axfrdns_user|quote}} {{axfrdns_log_user|quote}} {{axfrdns_directory|quote}} {{tinydns_directory|quote}} 0.0.0.0
+  when: not axfrdns_directory_stat.stat.exists
+
+- name: Change axfrdns database
+  copy:
+    dest: "{{axfrdns_directory}}/tcp"
+    content: |
+      :allow,AXFR=""
+      {% for host in axfr_allow %}
+      {{host}}:allow,AXFR="{{ axfr_allow[host]|join("/") }}"
+      {% endfor %}
+  tags:
+    - update_axfr
+
+- name: Update axfrdns database
+  shell: |
+    cd {{axfrdns_directory|quote}}
+    make
+  tags:
+    - update_axfr
+
+- name: Let svscan know about the axfrdns service
+  file:
+    dest: "{{svscan_directory}}/{{axfrdns_svscan_name}}"
+    src: "{{axfrdns_directory}}"
+    state: link

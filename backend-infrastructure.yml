@@ -1,4 +1,9 @@
 ---
+- name: Install DNS server
+  hosts: dns-server
+  roles:
+    - dns-server
+
 - name: Install authentication server
   hosts: authentication-server
   roles:

@@ -19,6 +19,22 @@ def select_keys(data, keys):
 			retval[key] = data[key]
 		return retval
 
+def relative_dns(data, domain):
+	"if data doesn't end with a ., append domain. result is guaranteed to end with a ."
+	if len(data) > 0:
+		if data[-1] != ".":
+			data = data + "." + domain
+	else:
+		data = domain
+	if not data.endswith("."):
+		data = data + "."
+	return data
+
+def encode_djbdns(data):
+	"encodes all non-alphabet characters to octal escapes"
+	import string
+	return "".join( ( e if e in (string.letters+string.digits) else ("\\%s" % oct(ord(e))[-3:])  ) for e in data )
+
 class FilterModule(object):
 	'''
 	custom jinja2 filters
@@ -27,5 +43,7 @@ class FilterModule(object):
 	def filters(self):
 		return {
 			'default_hash': default_hash,
-			'select_keys': select_keys
+			'select_keys': select_keys,
+			'relative_dns': relative_dns,
+			'encode_djbdns': encode_djbdns
 		}

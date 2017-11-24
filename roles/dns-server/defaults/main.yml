@@ -1,0 +1,13 @@
+dns_ttl: 3600
+axfr_allow: {}
+
+tinydns_directory: /etc/tinydns
+tinydns_user: Gtinydns
+tinydns_log_user: Gdnslog
+svscan_directory: /etc/service
+tinydns_svscan_name: tinydns
+
+axfrdns_directory: /etc/axfrdns
+axfrdns_user: Gaxfrdns
+axfrdns_log_user: Gdnslog
+axfrdns_svscan_name: axfrdns
