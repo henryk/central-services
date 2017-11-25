@@ -11,6 +11,7 @@
   </forward>
   <bridge name='{{network_definition.interface|default(network_name)}}' stp='on' delay='0'/>
   <ip address='{{network_definition.ip | ipaddr("address")}}' netmask='{{ network_definition.ip|ipaddr("netmask") }}'>
+    {% if "dhcp_start" in network_definition and "dhcp_end" in network_definition %}
     <dhcp>
       <range start='{{network_definition.dhcp_start}}' end='{{network_definition.dhcp_end}}'/>
       {% if ansible_libvirt_networks and network_name in ansible_libvirt_networks %}
@@ -19,5 +20,15 @@
       	{% endfor %}
       {% endif %}
     </dhcp>
+    {% endif %}
   </ip>
+  {% if 'ip6' in network_definition %}
+  <ip family='ipv6' address='{{network_definition.ip6 | ipaddr("address")}}' prefix='{{ network_definition.ip6|ipaddr("prefix") }}'>
+    {% if "dhcp6_start" in network_definition and "dhcp6_end" in network_definition %}
+    <dhcp>
+      <range start='{{network_definition.dhcp6_start}}' end='{{network_definition.dhcp6_end}}'/>
+    </dhcp>
+    {% endif %}
+  </ip>
+  {% endif %}
 </network>
