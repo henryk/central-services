@@ -28,14 +28,14 @@ class Forwarding(object):
       self.domains[ config["domain"] ] = config
 
   def set_all_forwardings(self):
-    
+
     # For (mostly) atomic operation, create a temporary chain first
     for name, location in RULE_LOCATIONS.items():
       chainname = "%s-tmp" % name
       self.remove_chain(chainname, location)
       self.delete_chain(chainname, location)
       self.create_chain(chainname, location)
-    
+
     try:
       # Now insert the actual rules
       for domain, config in self.domains.items():
@@ -48,6 +48,10 @@ class Forwarding(object):
 
           self.add_rule_tmp("prerouting", "-p", proto, "-d", pubip, "--dport", pubport, "-j", "DNAT", "--to", "%s:%s" % (privip, privport) )
           self.add_rule_tmp("forward",    "-p", proto, "-d", privip, "--dport", privport, "-j", "ACCEPT")
+        
+        ## FIXME: Hardcode 192.168.0.0/16 as "ACCEPT and don't SNAT" for postrouting
+        self.add_rule_tmp("postrouting", "-p", "tcp", "-s", privip, "!", "-d", "192.168.0.0/24", "-j", "ACCEPT")
+        self.add_rule_tmp("postrouting", "-p", "udp", "-s", privip, "!", "-d", "192.168.0.0/24", "-j", "ACCEPT")
         
         self.add_rule_tmp("postrouting", "-p", "tcp", "-s", privip, "-j", "SNAT", "--to", "%s:1024-65535" % pubip)
         self.add_rule_tmp("postrouting", "-p", "udp", "-s", privip, "-j", "SNAT", "--to", "%s:1024-65535" % pubip)

@@ -36,6 +36,7 @@
     proxy: "{{ (zabbix_proxy + ' proxy') if zabbix_proxy is defined else omit}}"
   vars:
     ansible_become: False
+    zabbix_client_pass_name: "{{inventory_hostname}}"
     destination_host: "{{zabbix_server_name}}"
   delegate_to: "{{zabbix_server_name}}"
 

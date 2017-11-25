@@ -9,6 +9,7 @@
     - php7.0-xml
     - php7.0-bcmath
     - php7.0-mbstring
+    - python-pip  ## Required later
 
 - name: Install zabbix repository
   apt:
@@ -96,3 +97,9 @@
     option: date.timezone
     value: UTC
   notify: restart apache
+
+- name: Install zabbix-api via pip
+  ## Required to register host by delegate_to: here.
+  pip:
+    name: zabbix-api
+    state: latest
