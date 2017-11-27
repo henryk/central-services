@@ -49,12 +49,14 @@ class Forwarding(object):
           self.add_rule_tmp("prerouting", "-p", proto, "-d", pubip, "--dport", pubport, "-j", "DNAT", "--to", "%s:%s" % (privip, privport) )
           self.add_rule_tmp("forward",    "-p", proto, "-d", privip, "--dport", privport, "-j", "ACCEPT")
         
-        ## FIXME: Hardcode 192.168.0.0/16 as "ACCEPT and don't SNAT" for postrouting
-        self.add_rule_tmp("postrouting", "-p", "tcp", "-s", privip, "!", "-d", "192.168.0.0/24", "-j", "ACCEPT")
-        self.add_rule_tmp("postrouting", "-p", "udp", "-s", privip, "!", "-d", "192.168.0.0/24", "-j", "ACCEPT")
-        
-        self.add_rule_tmp("postrouting", "-p", "tcp", "-s", privip, "-j", "SNAT", "--to", "%s:1024-65535" % pubip)
-        self.add_rule_tmp("postrouting", "-p", "udp", "-s", privip, "-j", "SNAT", "--to", "%s:1024-65535" % pubip)
+        ## FIXME  Hardcode 192.168.0.0/16 as internal
+        self.add_rule_tmp("postrouting", "-p", "tcp", "-s", privip, "-d", "192.168.0.0/16", "-j", "ACCEPT")
+        self.add_rule_tmp("postrouting", "-p", "udp", "-s", privip, "-d", "192.168.0.0/16", "-j", "ACCEPT")
+        self.add_rule_tmp("postrouting", "-s", privip, "-d", "192.168.0.0/16", "-j", "ACCEPT", )        
+
+        self.add_rule_tmp("postrouting", "-p", "tcp", "-s", privip, "!", "-d", "192.168.0.0/16", "-j", "SNAT", "--to", "%s:1024-65535" % pubip)
+        self.add_rule_tmp("postrouting", "-p", "udp", "-s", privip, "!", "-d", "192.168.0.0/16", "-j", "SNAT", "--to", "%s:1024-65535" % pubip)
+        self.add_rule_tmp("postrouting", "-s", privip, "!", "-d", "192.168.0.0/16", "-j", "SNAT", "--to", pubip)        
 
     except:
       # Clear temporary chains
