@@ -33,11 +33,11 @@
   when: libvirt_domain.autostart
 
 
-## Still slightly broken
-# - name: Wait for domain to come up
-#   wait_for_connection:
-#   delegate_to: "{{libvirt_domain.inventory_hostname}}"
-#   vars:
-#     destination_host: "{{libvirt_domain.inventory_hostname}}"
-#   when: libvirt_domain.autostart
+- name: Wait for domain to come up
+  wait_for_connection:
+  delegate_to: "{{libvirt_domain.inventory_hostname}}"
+  vars:
+    destination_host: "{{libvirt_domain.inventory_hostname}}"
+    ansible_become: False
+  when: libvirt_domain.autostart
 
