@@ -36,6 +36,12 @@ class Forwarding(object):
       self.delete_chain(chainname, location)
       self.create_chain(chainname, location)
 
+    ## FIXME  Hardcode 192.168.0.0/16 as internal for Zabbix
+    self.add_rule_tmp("postrouting", "-p", "tcp", "-s", "192.168.0.0/16", "-d", "192.168.0.0/16", "-m", "state", "--state", "NEW", "-m", "multiport", "--dports", "10050,10051", "-j", "ACCEPT")
+    self.add_rule_tmp("postrouting", "-p", "tcp", "-s", "192.168.0.0/16", "-d", "192.168.0.0/16", "-m", "state", "--state", "RELATED,ESTABLISHED", "-m", "multiport", "--sports", "10050,10051", "-j", "ACCEPT")
+    self.add_rule_tmp("forward", "-p", "tcp", "-s", "192.168.0.0/16", "-d", "192.168.0.0/16", "-m", "state", "--state", "NEW", "-m", "multiport", "--dports", "10050,10051", "-j", "ACCEPT")
+    self.add_rule_tmp("forward", "-p", "tcp", "-s", "192.168.0.0/16", "-d", "192.168.0.0/16", "-m", "state", "--state", "RELATED,ESTABLISHED", "-m", "multiport", "--sports", "10050,10051", "-j", "ACCEPT")
+
     try:
       # Now insert the actual rules
       for domain, config in self.domains.items():
@@ -49,11 +55,6 @@ class Forwarding(object):
           self.add_rule_tmp("prerouting", "-p", proto, "-d", pubip, "--dport", pubport, "-j", "DNAT", "--to", "%s:%s" % (privip, privport) )
           self.add_rule_tmp("forward",    "-p", proto, "-d", privip, "--dport", privport, "-j", "ACCEPT")
         
-        ## FIXME  Hardcode 192.168.0.0/16 as internal
-        self.add_rule_tmp("postrouting", "-p", "tcp", "-s", privip, "-d", "192.168.0.0/16", "-j", "ACCEPT")
-        self.add_rule_tmp("postrouting", "-p", "udp", "-s", privip, "-d", "192.168.0.0/16", "-j", "ACCEPT")
-        self.add_rule_tmp("postrouting", "-s", privip, "-d", "192.168.0.0/16", "-j", "ACCEPT", )        
-
         self.add_rule_tmp("postrouting", "-p", "tcp", "-s", privip, "!", "-d", "192.168.0.0/16", "-j", "SNAT", "--to", "%s:1024-65535" % pubip)
         self.add_rule_tmp("postrouting", "-p", "udp", "-s", privip, "!", "-d", "192.168.0.0/16", "-j", "SNAT", "--to", "%s:1024-65535" % pubip)
         self.add_rule_tmp("postrouting", "-s", privip, "!", "-d", "192.168.0.0/16", "-j", "SNAT", "--to", pubip)        
