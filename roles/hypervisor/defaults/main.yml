@@ -34,6 +34,7 @@ domain_parameters_additional:
   - hypervisor_machine
   - inventory_hostname
   - internal_ip
+  - internal_ip6
   - network
 
 domain_parameters_jmes_map: >

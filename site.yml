@@ -22,4 +22,5 @@
 - import_playbook: misc-apps.yml
 - import_playbook: zabbix.yml
 - import_playbook: manage-users.yml
+- import_playbook: manage-network.yml
 - import_playbook: run-updates.yml

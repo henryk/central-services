@@ -1,0 +1,35 @@
+---
+- name: Manage VM network configuration
+  hosts: virtual_machines
+  tasks:
+    - name: Install network configuration
+      copy:
+        dest: /etc/network/interfaces
+        content: |
+          # This file describes the network interfaces available on your system
+          # and how to activate them. For more information, see interfaces(5).
+
+          source /etc/network/interfaces.d/*
+
+          # The loopback network interface
+          auto lo
+          iface lo inet loopback
+
+          {% set iface = ansible_default_ipv4.interface %}
+          {% set iface_struct = hostvars[inventory_hostname]["ansible_" + iface] %}
+          {% set network_struct = hostvars[hypervisor_machine].networks[network] %}
+          auto {{iface}}
+          iface {{iface}} inet dhcp
+
+          {% if internal_ip6 is defined %}
+          iface {{iface}} inet6 static
+            address {{internal_ip6}}
+            netmask {{network_struct.ip6|ipv6("prefix")}}
+            gateway {{network_struct.ip6|ipv6("address")}}
+          {% endif %}
+      when: hostvars[hypervisor_machine].networks[network].dhcp_start
+      notify:
+        - restart network
+  handlers:
+    - name: restart network
+      service: name=networking state=restarted

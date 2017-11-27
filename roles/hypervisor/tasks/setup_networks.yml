@@ -2,6 +2,22 @@
 - name: Get libvirt network facts
   virt_net: command=facts
 
+- name: Get libvirt nwfilter names
+  shell: |
+    virsh nwfilter-list | tail -n +3 | egrep -v ^$ | awk '{print $2;}'
+  register: nwfilter_list
+  changed_when: False
+
+- name: Define nwfilter
+  shell: |
+    virsh nwfilter-define <( echo {{lookup('template', item + '.xml.j2')|quote}} )
+  args:
+    executable: /bin/bash
+  when: item not in nwfilter_list.stdout_lines
+  with_items:
+    - allow-ipv6
+    - clean-traffic-allow-ipv6
+
 - debug:
     var: ansible_libvirt_networks
 

@@ -40,4 +40,3 @@
     destination_host: "{{libvirt_domain.inventory_hostname}}"
     ansible_become: False
   when: libvirt_domain.autostart
-
