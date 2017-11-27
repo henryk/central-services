@@ -47,6 +47,7 @@ domain_defaults:
   cpus: 1
   autostart: yes
   port_forwards: []
+  internal_service_ports: []
   users: []
   groups: []
   virt_builder_install: []

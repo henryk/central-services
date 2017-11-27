@@ -10,6 +10,8 @@
       network: "{{libvirt_domain.network}}"
       internal_ip: "{{libvirt_domain.internal_ip}}"
       forwardings: "{{libvirt_domain.port_forwards}}"
+      internal_service_ports: |
+        {{ [10050, 10051] + libvirt_domain.internal_service_ports }}
   register: install_port_forwarding_configuration
   tags:
     - update_nat
