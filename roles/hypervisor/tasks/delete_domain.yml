@@ -1,3 +1,6 @@
+- name: Get libvirt network facts
+  virt_net: command=facts
+
 - name: "Shutdown domain {{libvirt_domain_delete}}"
   virt:
     name: "{{libvirt_domain_delete}}"
@@ -18,7 +21,15 @@
   ignore_errors: "{{override_force_delete}}"
 
 - name: "Deconfigure DHCP lease for {{libvirt_domain_delete}}"
-  command: virsh net-update "{{libvirt_net_name}}" delete ip-dhcp-host "<host name='{{libvirt_domain_delete}}' />" --config --live
+  command: |
+    /bin/true
+    {% for network in ansible_libvirt_networks %}
+    {% for lease in ansible_libvirt_networks[network].dhcp_leases %}
+    {% if lease.hostname|default("") == libvirt_domain_delete %}
+    virsh net-update {{network|quote}} delete ip-dhcp-host "<host name='{{libvirt_domain_delete}}' />" --config --live
+    {% endif %}
+    {% endfor %}
+    {% endfor %}
   ignore_errors: "{{override_force_delete}}"
 
 - name: "Delete storage volume"
