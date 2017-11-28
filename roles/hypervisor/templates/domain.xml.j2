@@ -38,7 +38,7 @@
     <interface type='network'>
       <source network='{{libvirt_domain.network}}' bridge='{{hostvars[libvirt_domain.hypervisor_machine].networks[libvirt_domain.network].interface|default(libvirt_domain.network)}}'/>
       <model type='virtio'/>
-      <filterref filter='clean-traffic{{ "-allow-ipv6" if "internal_ip6" in libvirt_domain" else ""}'>
+      <filterref filter='clean-traffic{{ "-allow-ipv6" if "internal_ip6" in libvirt_domain else ""}}'>
         <parameter name='CTRL_IP_LEARNING' value='none'/>
         <parameter name='IP' value='{{ libvirt_domain.internal_ip }}'/>
       </filterref>
