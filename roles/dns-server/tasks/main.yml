@@ -77,6 +77,8 @@
       @{{r.name|default("")|relative_dns(primary_domain)}}::{{r.mailserver}}:{{r.prio|default(10)}}:{{r.ttl|default(dns_ttl)}}
       {% elif r.RR == 'TXT' %}
       '{{r.name|default("")|relative_dns(primary_domain)}}:{{r.text|encode_djbdns}}:{{r.ttl|default(dns_ttl)}}
+      {% elif r.RR == 'CNAME' %}
+      C{{r.name|default("")|relative_dns(primary_domain)}}:{{r.cname|relative_dns(primary_domain)}}:{{r.ttl|default(dns_ttl)}}
       {% endif %}
       {% endfor %}
   tags:
