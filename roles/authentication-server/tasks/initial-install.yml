@@ -32,6 +32,9 @@
   environment:
     DEBIAN_FRONTEND: non-interactive
 
+- name: Start LDAP
+  systemd: name=slapd enabled=yes state=started
+
 - name: Configure ldap.conf
   lineinfile:
     path: "/etc/ldap/ldap.conf"

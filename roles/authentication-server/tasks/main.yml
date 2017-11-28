@@ -10,12 +10,18 @@
 
 - name: Check for initial configuration
   stat:
-    path: '/etc/ldap'
+    path: '/etc/ldap/schema'
   register: ldap_exists
 
 - name: Perform initial configuration
   include_tasks: "tasks/initial-install.yml"
   when: ldap_reinitialize or not ldap_exists.stat.exists
+
+- name: Make sure LDAP server (slapd) is enabled and started
+  systemd:
+    name: slapd
+    state: started
+    enabled: yes
 
 - name: Create hierarchies
   ldap_entry:
