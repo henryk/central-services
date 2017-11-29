@@ -25,7 +25,7 @@
 
     - name: HACK HACK HACK Redirect port 80 to localhost
       shell: |
-        DOMAIN_IP=$(host "{{domain.name}}" | head -n 1 | awk '{print $4;}')
+        DOMAIN_IP=$(host "{{domain.name}}" | grep "has address" | head -n 1 | awk '{print $4;}')
         iptables -t nat -D OUTPUT -p tcp -d "${DOMAIN_IP}" --dport 80 -j REDIRECT --to-port 80
         iptables -t nat -A OUTPUT -p tcp -d "${DOMAIN_IP}" --dport 80 -j REDIRECT --to-port 80
       args:
