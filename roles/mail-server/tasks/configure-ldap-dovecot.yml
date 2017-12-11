@@ -13,13 +13,14 @@
 - name: Install Dovecot configuration files
   template:
     dest: /etc/dovecot/{{item.directory|default("")}}{{item.name}}
-    mode: 0600
+    mode: "{{item.mode|default('0644')}}"
     owner: root
     src: "{{item.name}}.j2"
   notify:
     - restart dovecot
   with_items:
     - name: dovecot-ldap.conf.ext
+      mode: "0600"
     - name: auth-ldap.conf.ext
       directory: "conf.d/"
     - name: 10-master.conf

@@ -21,6 +21,13 @@
   delegate_to: "{{ldap_server}}"
   with_items: "{{ldap_mail_access_groups}}"
 
+- name: Install postfix LDAP support
+  package:
+    name: postfix-ldap
+    state: present
+  notify:
+    - restart postfix
+
 - name: "Configure Postfix for LDAP: Disable local transport"
   shell: |
     md5sum /etc/postfix/main.cf
