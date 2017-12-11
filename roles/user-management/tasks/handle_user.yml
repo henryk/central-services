@@ -12,6 +12,6 @@
 - name: Add SSH keys
   authorized_key:
     user: "{{user_name}}"
-    key: "{{item}}"
-  with_items: "{{user.ssh_keys}}"
-
+    key: "{{user.ssh_keys | join('\n')}}"
+    exclusive: yes
+  
