@@ -1,10 +1,7 @@
 - name: Install software
   package:
-    name: '{{ item }}'
+    name: 'debconf-utils'
     state: 'present'
-  with_items:
-    - 'clamav-milter'
-    - 'debconf-utils'
 
 - name: Configure clamav-milter debconf
   debconf:
@@ -14,6 +11,11 @@
     vtype: '{{ item.vtype if "vtype" in item else "string" }}'
   with_items: "{{clamav_configuration}}"
   notify: Apply clamav-milter debconf
+
+- name: Install software
+  package:
+    name: 'clamav-milter'
+    state: 'present'
 
 - name: Start and enable clamav-daemon
   service: name=clamav-daemon state=started enabled=true
