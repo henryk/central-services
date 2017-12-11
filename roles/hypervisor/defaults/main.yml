@@ -33,6 +33,7 @@ domain_parameters: "{{(domain_defaults|list)+domain_parameters_additional}}"
 domain_parameters_additional:
   - hypervisor_machine
   - inventory_hostname
+  - external_ip
   - internal_ip
   - internal_ip6
   - network
