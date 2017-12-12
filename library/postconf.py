@@ -91,7 +91,11 @@ def run_module():
         if not operation in ("set", "append", "prepend"):
             module.fail_json(msg="Operation '%s' requested by key '%s' is not one of set, append, prepend." % (operation, key_operation), **result)
 
-        old_value = subprocess.check_output(["postconf", "-h", key]).strip()
+        if module.check_mode and key in result['new_values']:
+            old_value = result['new_values'][key]
+        else:
+            old_value = subprocess.check_output(["postconf", "-h", key]).strip()
+        
         result["old_values"].setdefault(key, old_value)
 
         if operation == "set":
