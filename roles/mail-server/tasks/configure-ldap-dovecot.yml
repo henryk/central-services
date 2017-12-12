@@ -10,6 +10,14 @@
     destination_host: "{{ldap_server}}"
   delegate_to: "{{ldap_server}}"
 
+- name: Install dovecot LDAP support
+  package:
+    name: dovecot-ldap
+    state: present
+  notify:
+    - restart dovecot
+
+
 - name: Install Dovecot configuration files
   template:
     dest: /etc/dovecot/{{item.directory|default("")}}{{item.name}}
