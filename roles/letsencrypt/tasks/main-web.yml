@@ -1,0 +1,36 @@
+---
+- name: Call letsencrypt CSR generation
+  include_role:
+    name: letsencrypt
+    tasks_from: generate-csr.yml
+    allow_duplicates: true
+  with_items: "{{hostvars|json_query(query_a) | map('default_hash', {'letsencrypt': {}} ) | map('default_hash', letsencrypt, 'letsencrypt' ) | list | json_query(query_b)}}"
+  loop_control:
+    loop_var: domain
+  vars:
+    query_a: "*.web[?frontend=='{{inventory_hostname}}'][]|[?letsencrypt][?letsencrypt.delegated!=true]"
+    query_b: "[].{name:name,aliases:aliases,frontend:frontend,letsencrypt:letsencrypt}"
+    letsencrypt_handler_conf: "{{letsencrypt_handler_defaults|combine(letsencrypt_handler)}}"
+
+- name: Call letsencrypt handler setup
+  include_role:
+    name: letsencrypt
+    tasks_from: setup-handler.yml
+    allow_duplicates: true
+  with_items: "{{ hostvars | json_query(query_a) | map('default_hash', letsencrypt) | list | json_query(query_b) }}"
+  loop_control:
+    loop_var: account_data
+  vars:
+    query_a: "*.web[?frontend=='{{inventory_hostname}}'][]|[?letsencrypt].letsencrypt"
+    query_b: "[].{staging:staging, email:email}[]"
+    letsencrypt_handler_conf: "{{letsencrypt_handler_defaults|combine(letsencrypt_handler)}}"
+
+- name: "Set up HTTPS"
+  include_role:
+    name: web-frontend
+    tasks_from: setup-ssl
+    allow_duplicates: true
+  static: no
+  vars:
+    cert_dir: "{{ssl_cert_directory}}"
+    key_dir: "{{ssl_key_directory}}"

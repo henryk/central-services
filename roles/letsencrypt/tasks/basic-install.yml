@@ -1,0 +1,21 @@
+---
+- name: Install basic packages
+  apt:
+    name: "{{item}}"
+    state: present
+  with_items:
+    - cron
+    - git
+    - acl
+    - openssl 
+    - dnsutils ## HACK
+    - iptables ## HACK
+
+- name: Create directories
+  file: path={{item.directory}} state=directory mode={{item.mode}}
+  with_items:
+    - { directory: "{{ssl_directory}}", mode: "a+rX" }
+    - { directory: "{{ssl_key_directory}}", mode: "0600" }
+
+- include: tasks/install-handler.yml letsencrypt_handler_conf="{{letsencrypt_handler_defaults|combine(letsencrypt_handler)}}"
+

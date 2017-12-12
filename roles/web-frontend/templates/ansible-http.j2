@@ -14,7 +14,7 @@ server {
     listen 80;
     listen [::]:80;
     server_name {{domain.name}};
-{% if 'letsencrypt' in domain and domain.letsencrypt %}
+{% if 'letsencrypt' in domain and domain.letsencrypt and ( (not 'delegated' in domain.letsencrypt) or not domain.letsencrypt.delegated) %}
     include snippets/acme.conf;
 {% endif %}
   

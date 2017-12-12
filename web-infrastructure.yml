@@ -3,4 +3,11 @@
   hosts: web-frontend
   roles:
     - web-frontend
-    - letsencrypt
+  tasks:
+    - import_role:
+        name: letsencrypt
+        tasks_from: basic-install.yml
+    - import_role:
+        name: letsencrypt
+        tasks_from: main-web.yml
+
