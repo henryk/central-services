@@ -13,17 +13,9 @@
     line: 'policyd-spf  unix  -       n       n       -       0       spawn  user=policyd-spf argv=/usr/bin/policyd-spf'
   notify: restart postfix
 
-- name: Set policyd-spf timeout
-  shell: md5sum /etc/postfix/main.cf; postconf -e policyd-spf_time_limit=3600; md5sum /etc/postfix/main.cf
-  register: postconf_set_timeout
-  changed_when: postconf_set_timeout.stdout_lines[0] != postconf_set_timeout.stdout_lines[-1]
-  notify: restart postfix
-
-- name: Get smtpd_recipient_restrictions
-  command: postconf -h smtpd_recipient_restrictions
-  register: smtpd_recipient_restrictions
-  changed_when: false
-- name: Set smtpd_recipient_restrictions
-  command: postconf -e "smtpd_recipient_restrictions = {{ smtpd_recipient_restrictions.stdout }} check_policy_service unix:private/policyd-spf"
-  when: not "private/policyd-spf" in smtpd_recipient_restrictions.stdout
+- name: Set policyd-spf timeout, register SPF restriction
+  postconf:
+    config:
+       policyd-spf_time_limit: "3600"
+       smtpd_recipient_restrictions__append: "check_policy_service unix:private/policyd-spf"
   notify: restart postfix

@@ -33,30 +33,25 @@
     - restart postfix
 
 - name: Configure Postfix
-  shell: |
-    md5sum /etc/postfix/main.cf
-    postconf -e {{ (item.key+" = "+item.value)|quote }}
-    md5sum /etc/postfix/main.cf
-  register: configure_postfix_main_cf
-  changed_when: configure_postfix_main_cf.stdout_lines[0] != configure_postfix_main_cf.stdout_lines[-1]
-  with_dict:
-    myhostname: "{{mail_own_name}}"
-    myorigin: "/etc/mailname"
-    smtpd_delay_reject: "yes"
-    smtpd_helo_required: "yes"
-    # SASL Dovecot
-    smtpd_sasl_auth_enable: "yes"
-    smtpd_sasl_security_options: "noplaintext"
-    smtpd_sasl_tls_security_options: "noanonymous"
-    smtpd_sasl_type: "dovecot"
-    smtpd_sasl_path: "private/auth"
-    # Dovecot virtual domains
-    dovecot_destination_recipient_limit: "1"
-    virtual_mailbox_domains: "{{mail_domain}} {{mail_own_name}}"
-    virtual_transport: dovecot
-    mydestination: localhost
-    # Further security
-    disable_vrfy_command: "yes"
+  postconf:
+    config:
+      myhostname: "{{mail_own_name}}"
+      myorigin: "/etc/mailname"
+      smtpd_delay_reject: "yes"
+      smtpd_helo_required: "yes"
+      # SASL Dovecot
+      smtpd_sasl_auth_enable: "yes"
+      smtpd_sasl_security_options: "noplaintext"
+      smtpd_sasl_tls_security_options: "noanonymous"
+      smtpd_sasl_type: "dovecot"
+      smtpd_sasl_path: "private/auth"
+      # Dovecot virtual domains
+      dovecot_destination_recipient_limit: "1"
+      virtual_mailbox_domains: "{{mail_domain}} {{mail_own_name}}"
+      virtual_transport: dovecot
+      mydestination: localhost
+      # Further security
+      disable_vrfy_command: "yes"
   notify:
     - restart postfix
 

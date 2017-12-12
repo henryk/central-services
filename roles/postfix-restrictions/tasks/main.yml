@@ -11,27 +11,23 @@
 
 
 - name: Configure Postfix restrictions
-  include_role:
-    name: postfix-server
-    tasks_from: postfix-setting
-    allow_duplicates: true
-  vars:
-    value: "{{restriction.value}}"
-    param: "{{restriction.param|default('smtpd_recipient_restrictions')}}"
-    match: "{{restriction.match|default(restriction.value)}}"
-    append: "{{restriction.append|default(True)}}"
-  with_items: ## Note: "append: False" items will end up in inverse order
-    - { value: "permit_dnswl_client list.dnswl.org", append: False}
-    - { value: "permit_dnswl_client neighbours.ploetzli.ch=127.0.0.2", append: False}
-    - { value: "check_sender_access hash:/etc/postfix/sender_access", append: False}
-    - { value: "reject_rhsbl_helo dbl.spamhaus.org"}
-    - { value: "reject_rhsbl_sender dbl.spamhaus.org"}
-    - { value: "permit_dnswl_client list.dnswl.org", param: "smtpd_client_restrictions", append: False }
-    - { value: "permit_dnswl_client neighbours.ploetzli.ch=127.0.0.2", param: "smtpd_client_restrictions", append: False }
-    - { value: "reject_rbl_client zen.spamhaus.org", param: "smtpd_client_restrictions" }
-    - { value: "reject_rbl_client bl.spamcop.net", param: "smtpd_client_restrictions" }
-    - { value: "reject_rbl_client cbl.abuseat.org", param: "smtpd_client_restrictions" }
-    - { value: "reject_rhsbl_client dbl.spamhaus.org", param: "smtpd_client_restrictions" }
-    - { value: "reject_rbl_client ix.dnsbl.manitu.net", param: "smtpd_client_restrictions" }
-  loop_control:
-    loop_var: restriction
+  postconf:
+    config:
+      smtpd_recipient_restrictions__prepend:
+        - "permit_dnswl_client list.dnswl.org"
+        - "permit_dnswl_client neighbours.ploetzli.ch=127.0.0.2"
+        - "check_sender_access hash:/etc/postfix/sender_access"
+      smtpd_recipient_restrictions__append:
+        - "reject_rhsbl_helo dbl.spamhaus.org"
+        - "reject_rhsbl_sender dbl.spamhaus.org"
+      smtpd_client_restrictions__prepend:
+        - "permit_dnswl_client list.dnswl.org"
+        - "permit_dnswl_client neighbours.ploetzli.ch=127.0.0.2"
+      smtpd_client_restrictions__append:
+        - "reject_rbl_client zen.spamhaus.org"
+        - "reject_rbl_client bl.spamcop.net"
+        - "reject_rbl_client cbl.abuseat.org"
+        - "reject_rhsbl_client dbl.spamhaus.org"
+        - "reject_rbl_client ix.dnsbl.manitu.net"
+  notify:
+    - restart postfix

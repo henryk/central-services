@@ -29,14 +29,9 @@
     - restart postfix
 
 - name: "Configure Postfix for LDAP: Disable local transport"
-  shell: |
-    md5sum /etc/postfix/main.cf
-    postconf -e {{ (item.key+" = "+item.value)|quote }}
-    md5sum /etc/postfix/main.cf
-  register: configure_postfix_main_ldap_cf
-  changed_when: configure_postfix_main_ldap_cf.stdout_lines[0] != configure_postfix_main_ldap_cf.stdout_lines[-1]
-  with_dict:
-    local_transport: "error:Local Transport Disabled"
+  postconf:
+    config:
+      local_transport: "error:Local Transport Disabled"
   notify:
     - restart postfix
 
@@ -88,18 +83,11 @@
 
 
 - name: Configure Postfix maps
-  include_role:
-    name: postfix-server
-    tasks_from: postfix-setting
-    allow_duplicates: true
-  vars:
-    value: "{{config_item.value}}"
-    param: "{{config_item.param}}"
-    match: "{{config_item.match|default(config_item.value)}}"
-    append: "{{config_item.append|default(True)}}"
-  with_items: ## Note: "append: False" items will end up in inverse order
-    - {param: "virtual_mailbox_maps", value: "proxy:ldap:/etc/postfix/ldap_virtual_recipients.cf"}
-    - {param: "virtual_alias_maps", value: "proxy:ldap:/etc/postfix/ldap_virtual_aliases.cf"}
-    - {param: "virtual_alias_maps", value: "proxy:ldap:/etc/postfix/ldap_virtual_alias_recipients.cf"}
-  loop_control:
-    loop_var: config_item
+  postconf:
+    config:
+      virtual_mailbox_maps__append: proxy:ldap:/etc/postfix/ldap_virtual_recipients.cf
+      virtual_alias_maps__append:
+        - proxy:ldap:/etc/postfix/ldap_virtual_aliases.cf
+        - proxy:ldap:/etc/postfix/ldap_virtual_alias_recipients.cf
+  notify:
+    - restart postfix
