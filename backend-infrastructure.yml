@@ -13,3 +13,8 @@
   hosts: mail-server
   roles:
     - mail-server
+
+- name: Install mailing-list server (Mailman 2)
+  hosts: mailman2-server
+  roles:
+    - mailman2-server

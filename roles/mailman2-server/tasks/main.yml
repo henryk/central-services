@@ -1,0 +1,22 @@
+---
+- name: Install nginx as web server
+  import_role:
+    name: web-frontend
+
+- name: Install basic packages
+  apt:
+    name: "{{item}}"
+    state: present
+  with_items:
+    - mailman
+    - fcgiwrap
+
+- name: Ensure Postfix is properly installed
+  stat:
+    path: /etc/postfix/main.cf
+  register: postfix_main_cf
+
+- name: Fail when no Postfix is installed
+  fail:
+    msg: Need to install Postfix. This role can only be used with a mail-server role.
+  when: not postfix_main_cf.stat.exists
