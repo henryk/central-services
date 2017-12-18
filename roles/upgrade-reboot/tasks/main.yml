@@ -11,5 +11,6 @@
   ignore_errors: true
   async: 0
   poll: 0
+  when: do_reboot
 
 

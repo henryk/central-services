@@ -3,7 +3,7 @@
   hosts: hypervisors
   strategy: debug
   roles:
-    - upgrade-reboot
+    - { role: upgrade-reboot, do_reboot: false }
     - hypervisor
     - hypervisor.backup
 
