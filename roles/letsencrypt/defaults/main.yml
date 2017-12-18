@@ -6,6 +6,9 @@ letsencrypt_handler: {}
 
 letsencrypt: {}
 
+letsencrypt_defaults:
+  delegated: false
+
 ssl_directory: /etc/ssl
 ssl_key_directory: "{{ssl_directory}}/private"
 ssl_cert_directory: "{{ssl_directory}}/letsencrypt-out"
