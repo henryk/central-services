@@ -1,0 +1,62 @@
+- name: Install PHP LDAP packages
+  apt: state=present name={{item}}
+  with_items:
+    - php7.0-ldap
+  notify:
+    - restart apache2
+
+- name: Set up LDAP service user
+  include_role:
+    name: authentication-server
+    tasks_from: setup-service-user
+    allow_duplicates: true
+  vars:
+    service_user: "{{wordpress_ldap_service_user}}"
+    service_password: "{{wordpress_ldap_service_password}}"
+    destination_host: "{{ldap_server}}"
+  delegate_to: "{{ldap_server}}"
+
+- name: Remount /tmp with acl support (HACK HACK HACK)
+  command: mount / -o remount,acl
+  changed_when: false
+  args:
+    warn: false
+
+- name: Install AuthLDAP plugin
+  shell: |
+    cd {{wordpress_installation_path}}
+    /usr/local/bin/wp plugin install authldap --activate
+  become_user: "www-data"
+
+- name: Configure AuthLDAP plugin
+  shell: "/usr/local/bin/wp option patch update authLDAPOptions {{item.key|quote}}"
+  become_user: "www-data"
+  args:
+    chdir: "{{wordpress_installation_path}}"
+    stdin: "{{item.value}}"
+  with_dict:
+    URI: |
+      ldap://uid={{ wordpress_ldap_service_user }},ou={{ ldap_services_ou }},{{ ldap_domain | hostname_to_dn }}:{{wordpress_ldap_service_password}}@{{hostvars[ldap_server].internal_ip}}/{{ ldap_domain | hostname_to_dn }}
+    NameAttr: givenName
+    SecName: sn
+    MailAttr: CC-preferredMail
+    GroupEnable: "1"
+    GroupOverUser: "1"
+    GroupAttr: cn
+    GroupFilter: "(&(objectClass=groupOfNames)(member=%dn%))" 
+
+- name: Configure AuthLDAP plugin for Groups
+  shell: "/usr/local/bin/wp option patch update authLDAPOptions Groups {{item.key|quote}}"
+  become_user: "www-data"
+  args:
+    chdir: "{{wordpress_installation_path}}"
+    stdin: "{{item.value}}"
+  with_dict:
+    administrator: "{{ ldap_full_access_groups|join(',') }}"
+
+- name: Activate AuthLDAP plugin
+  shell: "/usr/local/bin/wp option patch update authLDAPOptions Enabled"
+  become_user: "www-data"
+  args:
+    chdir: "{{wordpress_installation_path}}"
+    stdin: true

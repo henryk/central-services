@@ -12,3 +12,6 @@ wordpress_cli_sha512: "f861b5499e0b555a791ab6d76a0f3b1f033ae22aaee63dcdfaf8a0bd4
 wordpress_installation_path_safe: "{{wordpress_installation_path|regex_replace('_','__')|regex_replace('/','_')}}"
 wordpress_force_rekey: false
 wordpress_force_all: false
+
+wordpress_ldap_service_user: wordpress
+wordpress_ldap_service_password: "{{ lookup('passwordstore', pass_prefix + inventory_hostname + '/ldap/' + wordpress_ldap_service_user + ' create=true length=' + pass_generate_length ) }}"

@@ -13,6 +13,7 @@
     - php-mcrypt
     - php-xml
     - php-xmlrpc
+    - acl  ## See HACK HACK HACK
 
 - name: Set up DB
   include_role:
@@ -160,3 +161,7 @@
     owner: 'www-data'
     state: 'directory'
     recurse: true
+
+- name: Configure LDAP
+  include_tasks: tasks/configure-ldap.yml
+  when: ldap_server != None
