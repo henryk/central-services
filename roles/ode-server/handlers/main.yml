@@ -1,0 +1,7 @@
+- name: restart ode
+  systemd:
+    daemon_reload: yes
+    name: ode
+    enabled: yes
+    state: restarted
+

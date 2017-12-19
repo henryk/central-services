@@ -8,9 +8,14 @@ ODE_ALIAS_BASE = "ou={{ ldap_aliases_ou }},%(ODE_BASE_DN)s"
 ODE_USER_DN = "uid=%(username)s,ou={{ ldap_users_ou }},%(ODE_BASE_DN)s"
 ODE_ALLOW_DIRECT_DN = {{ "True" if ode_allow_direct_dn else "False" }}
 
-ISI_EVENT_SOURCES = {
-        "example-calendar": "https://example.com/calendar.ics"
-}
+ODE_BIND_DN = "uid={{ ode_ldap_service_user }},ou={{ ldap_services_ou }},{{ ldap_domain | hostname_to_dn }}"
+ODE_BIND_PW = {{ode_ldap_service_password | to_json}}
+
+SQLALCHEMY_DATABASE_URI = 'sqlite:///{{ode_instance}}/ode.sqlite'
+DISPLAY_TIMEZONE = {{ode_display_timezone | to_json}}
+
+{% set ode_settings = ode|default_hash(ode_defaults) %}
+ISI_EVENT_SOURCES = {{ ode_settings.isi_event_sources | to_json }}
 
 LDAP_SERVER = '{{hostvars[ldap_server].internal_ip}}'
 LDAP_PORT = 389
