@@ -109,12 +109,21 @@
     state: present
     path: '{{wordpress_installation_path}}/wp-config.php'
     regexp: "^\\s*(?:#\\s*)?define\\s*\\(\\s*['\"]{{item.key}}['\"]"
-    line: "define('{{item.key}}', '{{ item.value }}');"
+    line: "define('{{item.key}}', {{ item.value | to_json }} );"
   with_dict:
     DB_NAME: '{{wordpress_mysql_database}}'
     DB_USER: '{{wordpress_mysql_user}}'
     DB_PASSWORD: '{{wordpress_mysql_password}}'
     FS_METHOD: 'direct'
+    FORCE_SSL_ADMIN: true
+
+- name: Fix Wordpress HTTPS proxy stupidity (https://wordpress.stackexchange.com/a/250254)
+  lineinfile:
+    state: present
+    path: '{{wordpress_installation_path}}/wp-config.php'
+    line: |
+      if (strpos($_SERVER['HTTP_X_FORWARDED_PROTO'], 'https') !== false) { $_SERVER['HTTPS'] = 'on'; }
+    insertbefore: "^\\s*require_once.*wp-settings\\.php.*$"
 
 - name: Touch .htaccess
   copy:
@@ -135,3 +144,10 @@
     - { path: 'index.html', state: 'absent' }
     - { path: 'wp-content', state: 'directory', recurse: true }
     - { path: 'wp-data', state: 'directory', recurse: true }
+
+- name: Change directory ownerships to allow for upgrades
+  file:
+    dest: '{{wordpress_installation_path}}'
+    owner: 'www-data'
+    state: 'directory'
+    recurse: true
