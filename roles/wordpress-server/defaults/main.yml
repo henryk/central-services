@@ -2,8 +2,12 @@ wordpress_mysql_user: wordpress
 wordpress_mysql_password: "{{ lookup('passwordstore', pass_prefix + pass_name + '/mysql/' + wordpress_mysql_user + ' create=true length=' + pass_generate_length ) }}"
 wordpress_mysql_database: wordpress
 wordpress_installation_path: /var/www/html
+
 wordpress_version: "4.8.1"
 wordpress_sha1: "5376cf41403ae26d51ca55c32666ef68b10e35a4"
+
+wordpress_cli_version: "1.4.1"
+wordpress_cli_sha512: "f861b5499e0b555a791ab6d76a0f3b1f033ae22aaee63dcdfaf8a0bd44886876690d40c6c95366d60f32d55f6282273e55f8ecdfa8787aec7b435cffe45790e7"
 
 wordpress_installation_path_safe: "{{wordpress_installation_path|regex_replace('_','__')|regex_replace('/','_')}}"
 wordpress_force_rekey: false

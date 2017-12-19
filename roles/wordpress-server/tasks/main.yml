@@ -3,6 +3,7 @@
   with_items:
     - apache2
     - php
+    - php-cli
     - libapache2-mod-php
     - php-mcrypt
     - php-mysql
@@ -52,6 +53,13 @@
     state: link
   notify:
     - restart apache2
+
+- name: Install WP-CLI
+  get_url:
+    dest: '/usr/local/bin/wp'
+    url: 'https://github.com/wp-cli/wp-cli/releases/download/v{{wordpress_cli_version}}/wp-cli-{{wordpress_cli_version}}.phar'
+    checksum: 'sha512:{{wordpress_cli_sha512}}'
+    mode: a+x
 
 - name: Create wordpress directory
   file:
@@ -124,6 +132,7 @@
     line: |
       if (strpos($_SERVER['HTTP_X_FORWARDED_PROTO'], 'https') !== false) { $_SERVER['HTTPS'] = 'on'; }
     insertbefore: "^\\s*require_once.*wp-settings\\.php.*$"
+    regexp: 'strpos.*HTTP_X_FORWARDED_PROTO.*_SERVER.*HTTPS.*on'
 
 - name: Touch .htaccess
   copy:
