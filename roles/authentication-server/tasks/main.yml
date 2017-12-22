@@ -42,16 +42,9 @@
     - "{{ldap_access_rights_ou}}"
 
 - name: Create privileged groups
-  ldap_entry:
-    bind_dn: "{{ldap_root_dn}}"
-    bind_pw: "{{ldap_root_password}}"
-    dn: cn={{item}},ou={{ldap_groups_ou}},{{ ldap_domain | hostname_to_dn}}
-    objectClass:
-      - groupOfNames
-      - top
-    attributes:
-      cn: "{{item}}"
-      member: "{{ldap_dummy_dn}}"
+  include_tasks: tasks/setup-group.yml
+  vars:
+    group_name: "{{item}}"
   with_items: "{{ldap_full_access_groups + ldap_read_member_list_groups}}"
 
 - name: Create access rights

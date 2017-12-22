@@ -1,0 +1,11 @@
+- name: Create group
+  ldap_entry:
+    bind_dn: "{{ldap_root_dn}}"
+    bind_pw: "{{ldap_root_password}}"
+    dn: cn={{group_name}},ou={{ldap_groups_ou}},{{ ldap_domain | hostname_to_dn}}
+    objectClass:
+      - groupOfNames
+      - top
+    attributes:
+      cn: "{{group_name}}"
+      member: "{{ldap_dummy_dn}}"

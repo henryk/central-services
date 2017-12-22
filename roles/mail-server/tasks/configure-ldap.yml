@@ -1,0 +1,21 @@
+- name: Create mail user groups
+  include_role:
+    name: authentication-server
+    tasks_from: setup-group
+    allow_duplicates: true
+  vars:
+    group_name: "{{item}}"
+    destination_host: "{{ldap_server}}"
+  delegate_to: "{{ldap_server}}"
+  with_items: "{{ldap_mail_access_groups}}"
+
+- name: "Link 'users' tree to mail access"
+  include_role:
+    name: authentication-server
+    tasks_from: setup-access-right
+    allow_duplicates: true
+  vars:
+    right: "{{ldap_access_right_mail}}"
+    object_name: "ou={{ldap_users_ou}},{{ ldap_domain | hostname_to_dn}}"
+    destination_host: "{{ldap_server}}"
+  delegate_to: "{{ldap_server}}"

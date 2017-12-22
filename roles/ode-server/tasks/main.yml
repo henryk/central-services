@@ -20,6 +20,17 @@
     destination_host: "{{ldap_server}}"
   delegate_to: "{{ldap_server}}"
 
+- name: Set up Mail access rights for ode service user
+  include_role:
+    name: authentication-server
+    tasks_from: setup-access-right
+    allow_duplicates: true
+  vars:
+    right: "{{ldap_access_right_mail}}"
+    object_name: "uid={{ode_ldap_service_user}},ou={{ldap_services_ou}},{{ ldap_domain | hostname_to_dn}}"
+    destination_host: "{{ldap_server}}"
+  delegate_to: "{{ldap_server}}"
+
 - name: Create a dedicated ode user
   user:
     name: "{{ode_user}}"

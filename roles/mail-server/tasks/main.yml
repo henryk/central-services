@@ -55,6 +55,10 @@
   notify:
     - restart postfix
 
+- name: Configure LDAP for mail
+  include_tasks: tasks/configure-ldap.yml
+  when: ldap_server != None
+
 - name: Configure Postfix for LDAP 
   include_tasks: tasks/configure-ldap-postfix.yml
   when: ldap_server != None
