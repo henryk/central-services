@@ -1,0 +1,15 @@
+---
+- name: restart mailman-api
+  service: name=mailman-api state=restarted
+
+- name: restart mailman
+  service: name=mailman state=restarted
+
+- name: restart postfix
+  service: name=postfix state=restarted
+
+- name: restart nginx
+  service: name=nginx state=restarted
+
+- name: mailman genaliases
+  command: /var/lib/mailman/bin/genaliases

@@ -10,6 +10,7 @@
   with_items:
     - mailman
     - fcgiwrap
+    - mailman-api
 
 - name: Ensure Postfix is properly installed
   stat:
@@ -20,3 +21,106 @@
   fail:
     msg: Need to install Postfix. This role can only be used with a mail-server role.
   when: not postfix_main_cf.stat.exists
+
+- name: Configure mailman-api
+  lineinfile:
+    line: |
+      OPTIONS=' -b 0.0.0.0:8000 --allow-from={{hostvars[hypervisor_machine].networks[network].ip}}'
+    regexp: '^\s*#?\s*OPTIONS\s*='
+    path: /etc/default/mailman-api
+    state: present
+  notify:
+    - restart mailman-api
+
+- name: Install Mailman transport mapper
+  copy:
+    content: |
+      sed -r -e 's/(^[^#]\S+\s+).+$/\1local:/' $1 \
+      > /var/lib/mailman/data/transport-mailman
+      /usr/sbin/postmap $1
+      /usr/sbin/postmap /var/lib/mailman/data/transport-mailman
+    mode: a+x
+    dest: /var/lib/mailman/data/virtual_to_transport
+  notify:
+    - mailman genaliases
+
+- name: Configure Mailman
+  lineinfile:
+    path: /etc/mailman/mm_cfg.py
+    regexp: '^\s*#?\s*{{item.key}}\s*=[^#]*$'
+    line: '{{item.key}}={{item.value|to_json}}'
+    state: present
+  with_dict:
+    DEFAULT_EMAIL_HOST: "{{mailman_primary_domain}}"
+    DEFAULT_URL_HOST: "{{mailman_web_domain}}"
+    DEFAULT_URL_PATTERN: 'https://%(hostname)s/mailman/'
+    MTA: "Postfix"
+    DEFAULT_SERVER_LANGUAGE: "{{mailman_language}}"
+    POSTFIX_STYLE_VIRTUAL_DOMAINS:
+      - "{{mailman_primary_domain}}"
+    PUBLIC_ARCHIVE_URL: 'https://%(hostname)s/lists/archive/%(listname)s/'
+    DEFAULT_ARCHIVE_PRIVATE: 1
+    DEFAULT_LIST_ADVERTISED: 0
+    DEFAULT_MAX_MESSAGE_SIZE: 2049
+    POSTFIX_MAP_CMD: '/var/lib/mailman/data/virtual_to_transport'
+    DEFAULT_MSG_FOOTER: ''
+    OWNERS_CAN_ENABLE_PERSONALIZATION: 1
+  notify:
+    - restart mailman
+    - mailman genaliases
+
+- name: Create site list
+  command: |
+    /usr/sbin/newlist -q mailman {{mailman_admin|quote}} {{mailman_list_password_mailman|quote}}
+  args:
+    creates: /var/lib/mailman/lists/mailman
+  notify:
+    - restart mailman
+    - mailman genaliases
+
+- name: Configure postfix
+  postconf:
+    config:
+      alias_maps__prepend: hash:/var/lib/mailman/data/aliases
+      transport_maps__prepend: hash:/var/lib/mailman/data/transport-mailman
+      virtual_mailbox_maps__prepend: hash:/var/lib/mailman/data/virtual-mailman
+      mailman_destination_recipient_limit: 1
+  notify:
+    - restart postfix
+
+- name: Install nginx configuration
+  copy:
+    content: |
+      server {
+        listen 80 default;
+        listen [::]:80 default;
+        server_name {{mailman_web_domain}};
+
+        location /mailman {
+          root  /usr/lib/cgi-bin;
+          fastcgi_split_path_info (^/mailman/[^/]+)(/.*)$;
+          fastcgi_pass  unix:///var/run/fcgiwrap.socket;
+          include /etc/nginx/fastcgi_params;
+          fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+          fastcgi_param PATH_INFO       $fastcgi_path_info;
+        }
+        location /images/mailman {
+          alias /usr/share/images/mailman;
+        }
+        location /pipermail {
+          alias /var/lib/mailman/archives/public;
+          autoindex on;
+        }
+      }
+    mode: a+x
+    dest: /etc/nginx/sites-available/mailman2
+  notify:
+    - restart nginx
+
+- name: Enable HTTP configuration
+  file:
+    dest: /etc/nginx/sites-enabled/mailman2
+    src: /etc/nginx/sites-available/mailman2
+    state: link
+  notify:
+    - restart nginx

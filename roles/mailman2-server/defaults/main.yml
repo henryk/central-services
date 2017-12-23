@@ -1,0 +1,5 @@
+mailman_primary_domain: "{{primary_domain}}"
+mailman_web_domain: "lists.{{primary_domain}}"
+mailman_language: "en"
+mailman_admin: "postmaster@{{primary_domain}}"
+mailman_list_password_mailman: "{{ lookup('passwordstore', pass_prefix + inventory_hostname + '/mailman/mailman' + ' create=true length=' + pass_generate_length ) }}"
