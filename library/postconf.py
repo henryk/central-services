@@ -99,7 +99,7 @@ def run_module():
         result["old_values"].setdefault(key, old_value)
 
         if operation == "set":
-            new_value = value.strip()
+            new_value = str(value).strip()
         elif operation in ("append", "prepend"):
             if old_value:
                 values = old_value.split(",")
