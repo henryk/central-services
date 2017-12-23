@@ -119,9 +119,9 @@ def run_module():
                     if operation == "append":
                         values.append(value)
                     elif operation == "prepend":
-                        values.push(value, 0)
+                        values.insert(0, value)
 
-            new_value = ",  ".join(values)
+            new_value = ",  ".join(e for e in values if e.strip() != "")
 
         if new_value != old_value:
             result['changed'] = True
