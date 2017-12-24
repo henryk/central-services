@@ -22,13 +22,28 @@
     msg: Need to install Postfix. This role can only be used with a mail-server role.
   when: not postfix_main_cf.stat.exists
 
+
+- name: Check mailman-api for patch
+  stat: path=/usr/lib/python2.7/dist-packages/mailmanapi/api.py get_checksum=yes checksum_algorithm=sha256
+  register: mailman_api_api
+
+- name: Apply patch for mailman-api
+  copy:
+    dest=/usr/lib/python2.7/dist-packages/mailmanapi/api.py
+    src=api.py
+  when: mailman_api_api.stat.checksum == 'f928becb8bac54b8d4cf90a5947dddc2b1f7749bb26e3856c683e33e56bb5bdd'
+  notify:
+    - restart mailman-api
+
 - name: Configure mailman-api
   lineinfile:
     line: |
-      OPTIONS=' -b 0.0.0.0:8000 --allow-from={{hostvars[hypervisor_machine].networks[network].ip}}'
+      OPTIONS='-b 0.0.0.0:8000 {% for host in hostvars %}{% if hostvars[host].mail_server|default("") == inventory_hostname %}--allow-from={{hostvars[host].internal_ip}} {% endif %}{% endfor %}'
     regexp: '^\s*#?\s*OPTIONS\s*='
     path: /etc/default/mailman-api
     state: present
+  vars:
+    query_a: 
   notify:
     - restart mailman-api
 
@@ -53,7 +68,7 @@
   with_dict:
     DEFAULT_EMAIL_HOST: "{{mailman_primary_domain}}"
     DEFAULT_URL_HOST: "{{mailman_web_domain}}"
-    DEFAULT_URL_PATTERN: 'https://%(hostname)s/mailman/'
+    DEFAULT_URL_PATTERN: 'https://%s/mailman/'
     MTA: "Postfix"
     DEFAULT_SERVER_LANGUAGE: "{{mailman_language}}"
     POSTFIX_STYLE_VIRTUAL_DOMAINS:
