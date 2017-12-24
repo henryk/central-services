@@ -7,6 +7,8 @@ ode_instance: "{{ode_directory}}/instance"
 
 ode_allow_direct_dn: True
 ode_display_timezone: Europe/Berlin
+ode_server_name: "ode.{{primary_domain}}"
+ode_amu_mmapi_url: "http://{{hostvars[mail_server].internal_ip}}:8000/"
 
 ode_ldap_service_user: ode
 ode_ldap_service_password: "{{ lookup('passwordstore', pass_prefix + inventory_hostname + '/ldap/' + ode_ldap_service_user + ' create=true length=' + pass_generate_length ) }}"

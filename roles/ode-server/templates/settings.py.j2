@@ -13,6 +13,7 @@ ODE_BIND_PW = {{ode_ldap_service_password | to_json}}
 
 SQLALCHEMY_DATABASE_URI = 'sqlite:///{{ode_instance}}/ode.sqlite'
 DISPLAY_TIMEZONE = {{ode_display_timezone | to_json}}
+SERVER_NAME = "{{ode_server_name}}"
 
 {% set ode_settings = ode|default_hash(ode_defaults) %}
 ISI_EVENT_SOURCES = {{ ode_settings.isi_event_sources | to_json }}
@@ -22,24 +23,60 @@ LDAP_PORT = 389
 LDAP_TIMEOUT = 10
 LDAP_USE_TLS = False  # default
 
-MAIL_SERVER = 'mail.example.com'
+MAIL_SERVER = "{{ode_mail_server}}"
+MAIL_USERNAME = "{{ ode_ldap_service_user }}"
+MAIL_PASSWORD = {{ode_ldap_service_password | to_json}}
+MAIL_PORT = 587
+MAIL_USE_TLS = True
+
+
+AMU_MAILMAN_API_URL = "{{ode_amu_mmapi_url}}"
 
 AMU_USERMODMAIL = dict(
-        sender = u"The Management <mgmt@example.com>",
-        subject = u"Your account at example.com",
-        body = u"""Your account at example.com has been created or changed:
+    sender = u"{{ode_amu_sender}}",
+    subject = u"Dein Account auf {{primary_domain}}",
+    body = u"""Dein Benutzerkonto auf {{primary_domain}} wurde erzeugt oder geändert:
+
+ Benutzername: {% raw %}{{ user.userid }}{% endraw %}
+ Passwort:     {% raw %}{{ form.password.data }}{% endraw %}
+
+Du kannst, und solltest, dein Passwort jetzt unter
+  https://ode.{{primary_domain}}/
+ändern.
+
+Mit freundlichen Grüßen,
+  {% raw %}{{ g.ldap_user.name }}{% endraw %}
+"""
+)
+
+
+ISI_IMIP_ADDRESS = "ode+%(token)s@{{primary_domain}}"
+ISI_IMAP_SERVER = "{{ode_mail_server}}"
+ISI_IMAP_PORT = 993
+ISI_IMAP_TLS = True
+ISI_IMAP_USER = "{{ ode_ldap_service_user }}"
+ISI_IMAP_PASSWORD = {{ode_ldap_service_password | to_json}}
+ISI_IMAP_DEBUG = True
 
 {% raw %}
- Benutzername: {{ user.userid }}
- Passwort:     {{ form.password.data }}
+ISI_DEFAULT_TEMPLATES = [
+    dict(category="Berliner Samstagsrunde",
+        subject=u"Berliner Samstagsrunde am {{event.start|dateformat}}",
+        text_html=u"""<h1>{{event.summary}}</h1>
+<p>Wir wollen euch alle sehen.</p>
+
+<p>Um das Catering zu planen, möchten wir dich bitten, dich zurückzumelden, ob du kommst:</p>
+<ul>
+    {% raw %}
+  <li><a href="{{link_yes}}">Ja, ich komme!</a></li>
+  <li><a href="{{link_no}}">Nein, dieses mal kann ich leider nicht kommen.</a></li>
+    {% endraw %}{{ "{%" }}{{ "endraw %}" }}{% raw %}
+
+<p>Beschreibung: {{event.description}}</p>
+<p>Start: {{event.start|datetimeformat}}</p>
+<p>Ende: {{event.end|datetimeformat}}</p>""",
+        recipients_raw=["cn=samstagsrunde,ou=Mailing-Listen,dc=christophorus,dc=club"],
+        sender="Berliner Samstagsrunde <samstagsrunde@christophorus.club>")
+]
 {% endraw %}
 
-You can, and should, change your password at
-  https://example.com/selfservice/
-
-You can find more information at
-  https://wiki.example.com/
-
-Yours truly,
-  {% raw %}{{ g.ldap_user.name }}{% endraw %}
-""")

@@ -51,6 +51,8 @@
     update: yes
     version: "{{ode_version}}"
   become_user: "{{ode_user}}"
+  notify:
+    - restart ode
 
 - name: Upgrade setuptools/pip via pip
   pip:
