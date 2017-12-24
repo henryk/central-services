@@ -46,8 +46,9 @@ class Forwarding(object):
           privport = forward["dst"]
           pubport = forward.get("src", privport)
 
-          self.add_rule_tmp("prerouting", "-p", proto, "-d", pubip, "--dport", pubport, "-j", "DNAT", "--to", "%s:%s" % (privip, privport) )
-          self.add_rule_tmp("forward",    "-p", proto, "-d", privip, "--dport", privport, "-j", "ACCEPT")
+          self.add_rule_tmp("prerouting",  "-p", proto, "-d", pubip, "--dport", pubport, "-j", "DNAT", "--to", "%s:%s" % (privip, privport) )
+          self.add_rule_tmp("postrouting", "-p", proto, "-d", privip, "--dport", privport, "-s", "192.168.0.0/16", "-j", "MASQUERADE" )
+          self.add_rule_tmp("forward",     "-p", proto, "-d", privip, "--dport", privport, "-j", "ACCEPT")
         
         service_ports = config.get("internal_service_ports", [10050, 10051])
         service_ports = map(str, service_ports)
