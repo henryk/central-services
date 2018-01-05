@@ -37,8 +37,12 @@ AMU_USERMODMAIL = dict(
     subject = u"Dein Account auf {{primary_domain}}",
     body = u"""Dein Benutzerkonto auf {{primary_domain}} wurde erzeugt oder geändert:
 
- Benutzername: {% raw %}{{ user.userid }}{% endraw %}
- Passwort:     {% raw %}{{ form.password.data }}{% endraw %}
+{% raw %}
+ 
+ Benutzername: {{ user.userid }}
+ Passwort:     {{ form.password.data }}
+
+{% endraw %}
 
 Du kannst, und solltest, dein Passwort jetzt unter
   https://ode.{{primary_domain}}/
